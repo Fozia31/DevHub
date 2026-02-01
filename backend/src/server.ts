@@ -1,35 +1,42 @@
 import express from 'express';
 import cookieParser from 'cookie-parser';
-import authRoutes from './routes/v1/auth.routes';
-import connectDB from './config/db';
 import dotenv from 'dotenv';
 import cors from 'cors';
 import path from 'path';
-import taskRoutes from './routes/v1/task.routes';
-import adminRoutes from './routes/v1/admin.routes';
-import resourceRoutes from './routes/v1/resource.routes';
-import adminTaskRoutes from './routes/v1/admin.task.routes';
-
-import Task from './models/Task';
-import User from './models/User';
 import { fileURLToPath } from 'url';
 import { dirname } from 'path';
 
-// This recreates __dirname for ES Modules
+
+import connectDB from './config/db.js'; 
+import authRoutes from './routes/v1/auth.routes.js';
+import taskRoutes from './routes/v1/task.routes.js';
+import adminRoutes from './routes/v1/admin.routes.js';
+import resourceRoutes from './routes/v1/resource.routes.js';
+import adminTaskRoutes from './routes/v1/admin.task.routes.js';
+
+
+import Task from './models/Task.js';
+import User from './models/User.js';
+
+dotenv.config();
+const app = express();
+
+
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
-dotenv.config();
+
 connectDB();
 
-const app = express();
 app.use(cors({
-  origin: 'http://localhost:3000',
+  origin: process.env.NODE_ENV === 'production' 
+    ? process.env.FRONTEND_URL 
+    : 'http://localhost:3000',
   credentials: true,
   methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
   allowedHeaders: ['Content-Type', 'Authorization']
 }));
 
-app.use('/uploads', express.static(path.join(__dirname, '../uploads/tasks')));
+app.use('/uploads', express.static(path.join(__dirname, 'uploads'))); 
 app.use(cookieParser());
 app.use(express.json());
 
@@ -39,7 +46,7 @@ app.use('/api/admin', adminRoutes);
 app.use('/api/admin/tasks', adminTaskRoutes);
 app.use('/api/resources', resourceRoutes);
 
-const PORT = process.env.PORT || 5000;
+app.get('/health', (req, res) => res.status(200).send('Server is healthy'));
 
 const runMigration = async () => {
   try {
@@ -58,7 +65,10 @@ const runMigration = async () => {
   }
 };
 
+const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
-    console.log(`Server is running on port ${PORT}`);
-    runMigration(); 
+    console.log(`🚀 Server running on port ${PORT}`);
+    if (process.env.NODE_ENV === 'production') {
+      runMigration();
+    }
 });

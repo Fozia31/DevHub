@@ -4,8 +4,18 @@ import axios from 'axios';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Search, Plus, X, ExternalLink, Trash2, Edit, FileText, Video, Link as LinkIcon, Globe } from 'lucide-react';
 
+// --- TYPE DEFINITIONS ---
+interface Resource {
+  _id: string;
+  title: string;
+  description?: string;
+  type: 'video' | 'pdf' | 'link';
+  url: string;
+  category?: string;
+}
+
 const ResourceManagement = () => {
-  const [resources, setResources] = useState([]);
+  const [resources, setResources] = useState<Resource[]>([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -16,12 +26,17 @@ const ResourceManagement = () => {
     title: '', description: '', type: 'video', url: '', category: 'General'
   });
 
+  // PRODUCTION API CONFIG
+  const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
+  const BACKEND_ROOT = API_BASE.replace('/api', '');
+
   const fetchResources = async () => {
     try {
-      const response = await axios.get('http://localhost:5000/api/resources', { withCredentials: true });
-      setResources(response.data);
+      const response = await axios.get(`${API_BASE}/resources`, { withCredentials: true });
+      setResources(response.data || []);
       setLoading(false);
     } catch (error) {
+      console.error("Fetch error:", error);
       setLoading(false);
     }
   };
@@ -33,17 +48,18 @@ const ResourceManagement = () => {
     
     let finalUrl = url.trim();
     
+    // If it's a relative path from the server (e.g. /uploads/...)
     if (finalUrl.startsWith('/uploads')) {
-      finalUrl = "http://localhost:5000" + finalUrl;
+      finalUrl = BACKEND_ROOT + finalUrl;
     } 
     else {
+      // Ensure absolute URL for external links
       if (!finalUrl.includes('://')) {
         finalUrl = "https://" + finalUrl;
       }
     }
     
     window.open(finalUrl, '_blank', 'noopener,noreferrer');
-    
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -51,19 +67,18 @@ const ResourceManagement = () => {
     try {
       const config = { withCredentials: true };
       if (editingId) {
-        const updateUrl = "http://localhost:5000/api/resources/" + editingId;
-        await axios.put(updateUrl, formData, config);
+        await axios.put(`${API_BASE}/resources/${editingId}`, formData, config);
       } else {
-        await axios.post('http://localhost:5000/api/resources/add', formData, config);
+        await axios.post(`${API_BASE}/resources/add`, formData, config);
       }
       closeModal();
       fetchResources();
     } catch (error: any) {
-      console.error("Submit error:", error.response?.data?.error || "Operation failed");
+      alert(error.response?.data?.error || "Operation failed. Check console.");
     }
   };
 
-  const handleEditClick = (res: any) => {
+  const handleEditClick = (res: Resource) => {
     setEditingId(res._id);
     setFormData({
       title: res.title,
@@ -82,8 +97,9 @@ const ResourceManagement = () => {
   };
 
   const handleDelete = async (id: string) => {
+    if(!window.confirm("Delete this resource?")) return;
     try {
-      await axios.delete("http://localhost:5000/api/resources/" + id, { withCredentials: true });
+      await axios.delete(`${API_BASE}/resources/${id}`, { withCredentials: true });
       fetchResources();
     } catch (error) {
       console.error("Error deleting resource");
@@ -98,16 +114,16 @@ const ResourceManagement = () => {
     }
   };
 
-  const getResourceCover = (res: any) => {
-    if (res.type === 'video' && res.url.includes('youtube')) {
-      const videoId = res.url.split('v=')[1]?.split('&')[0] || res.url.split('/').pop();
-      return `https://img.youtube.com/vi/${videoId}/mqdefault.jpg`;
+  const getResourceCover = (res: Resource) => {
+    if (res.type === 'video' && res.url.includes('youtube.com') || res.url.includes('youtu.be')) {
+      const videoId = res.url.match(/(?:youtu\.be\/|youtube\.com(?:\/embed\/|\/v\/|\/watch\?v=|\/user\/\S+|\/ytscreeningroom\?v=))([\w\-]{10,12})\b/)?.[1];
+      return videoId ? `https://img.youtube.com/vi/${videoId}/mqdefault.jpg` : "https://images.unsplash.com/photo-1492619375914-88005aa9e8fb?w=600";
     }
     if (res.type === 'pdf') return "https://images.unsplash.com/photo-1568667256549-094345857637?w=600";
     return "https://images.unsplash.com/photo-1498050108023-c5249f4df085?w=600";
   };
 
-  const filteredResources = resources.filter((res: any) => {
+  const filteredResources = resources.filter((res) => {
     const matchesTab = activeTab === 'All Resources' || 
                        res.type.toLowerCase() === activeTab.toLowerCase().replace('s', '');
     const matchesSearch = res.title.toLowerCase().includes(searchQuery.toLowerCase()) || 
@@ -124,7 +140,7 @@ const ResourceManagement = () => {
           <input 
             type="text" placeholder="Search resources..." value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-10 pr-4 py-2 bg-slate-100 rounded-xl text-sm w-80 focus:ring-2 focus:ring-indigo-500 outline-none" 
+            className="pl-10 pr-4 py-2 bg-slate-100 rounded-xl text-sm w-80 focus:ring-2 focus:ring-indigo-500 outline-none transition-all" 
           />
         </div>
       </header>
@@ -146,38 +162,45 @@ const ResourceManagement = () => {
           ))}
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-          <AnimatePresence mode="popLayout">
-            {filteredResources.map((res: any) => (
-              <motion.div layout key={res._id} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="group bg-white rounded-[2.5rem] border border-slate-200 overflow-hidden hover:shadow-2xl transition-all duration-500 flex flex-col">
-                <div className="h-44 relative overflow-hidden bg-slate-100">
-                  <img src={getResourceCover(res)} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" alt="" />
-                  <div className="absolute top-4 left-4 bg-white/90 backdrop-blur px-3 py-1 rounded-full flex items-center gap-2 shadow-sm">
-                    {getIcon(res.type)}
-                    <span className="text-[10px] font-bold uppercase text-slate-700">{res.type}</span>
-                  </div>
-                  <div className="absolute top-4 right-4 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <button onClick={() => handleEditClick(res)} className="p-2 bg-white text-indigo-600 rounded-lg hover:bg-indigo-600 hover:text-white shadow-lg"><Edit size={16} /></button>
-                    <button onClick={() => handleDelete(res._id)} className="p-2 bg-white text-red-500 rounded-lg hover:bg-red-500 hover:text-white shadow-lg"><Trash2 size={16} /></button>
-                  </div>
-                </div>
-                <div className="p-6 flex-1 flex flex-col">
-                  <h3 className="font-bold text-slate-800 text-lg line-clamp-1">{res.title}</h3>
-                  <p className="text-slate-500 text-xs mt-2 mb-4 line-clamp-2 italic">"{res.description}"</p>
-                  <div className="mt-auto pt-4 border-t border-slate-100 flex items-center justify-between">
-                    <span className="text-[10px] font-medium text-slate-400 bg-slate-50 px-2 py-1 rounded-md">{res.category || 'General'}</span>
-                    <button 
-                      onClick={() => handleOpenLink(res.url)} 
-                      className="bg-slate-900 text-white px-4 py-2 rounded-xl text-xs font-bold hover:bg-indigo-600 transition-all flex items-center gap-2"
-                    >
-                      View <ExternalLink size={12}/>
-                    </button>
-                  </div>
-                </div>
-              </motion.div>
-            ))}
-          </AnimatePresence>
-        </div>
+        {loading ? (
+            <div className="flex flex-col items-center justify-center py-20 gap-4">
+                <div className="w-10 h-10 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>
+                <p className="text-slate-400 font-bold text-xs uppercase tracking-widest">Loading Library...</p>
+            </div>
+        ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            <AnimatePresence mode="popLayout">
+                {filteredResources.map((res) => (
+                <motion.div layout key={res._id} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="group bg-white rounded-[2.5rem] border border-slate-200 overflow-hidden hover:shadow-2xl transition-all duration-500 flex flex-col">
+                    <div className="h-44 relative overflow-hidden bg-slate-100">
+                    <img src={getResourceCover(res)} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" alt="" />
+                    <div className="absolute top-4 left-4 bg-white/90 backdrop-blur px-3 py-1 rounded-full flex items-center gap-2 shadow-sm">
+                        {getIcon(res.type)}
+                        <span className="text-[10px] font-bold uppercase text-slate-700">{res.type}</span>
+                    </div>
+                    <div className="absolute top-4 right-4 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <button onClick={() => handleEditClick(res)} className="p-2 bg-white text-indigo-600 rounded-lg hover:bg-indigo-600 hover:text-white shadow-lg"><Edit size={16} /></button>
+                        <button onClick={() => handleDelete(res._id)} className="p-2 bg-white text-red-500 rounded-lg hover:bg-red-500 hover:text-white shadow-lg"><Trash2 size={16} /></button>
+                    </div>
+                    </div>
+                    <div className="p-6 flex-1 flex flex-col">
+                    <h3 className="font-bold text-slate-800 text-lg line-clamp-1">{res.title}</h3>
+                    <p className="text-slate-500 text-xs mt-2 mb-4 line-clamp-2 italic">"{res.description}"</p>
+                    <div className="mt-auto pt-4 border-t border-slate-100 flex items-center justify-between">
+                        <span className="text-[10px] font-medium text-slate-400 bg-slate-50 px-2 py-1 rounded-md">{res.category || 'General'}</span>
+                        <button 
+                        onClick={() => handleOpenLink(res.url)} 
+                        className="bg-slate-900 text-white px-4 py-2 rounded-xl text-xs font-bold hover:bg-indigo-600 transition-all flex items-center gap-2"
+                        >
+                        View <ExternalLink size={12}/>
+                        </button>
+                    </div>
+                    </div>
+                </motion.div>
+                ))}
+            </AnimatePresence>
+            </div>
+        )}
       </div>
 
       <AnimatePresence>
@@ -207,7 +230,7 @@ const ResourceManagement = () => {
                   <input 
                     type="text" 
                     required 
-                    placeholder="URL (e.g. google.com)" 
+                    placeholder="URL (e.g. youtube.com/watch?v=...)" 
                     className="w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl outline-none focus:ring-2 focus:ring-indigo-500 transition-all font-mono text-sm pr-24" 
                     value={formData.url} 
                     onChange={(e) => setFormData({...formData, url: e.target.value})} 

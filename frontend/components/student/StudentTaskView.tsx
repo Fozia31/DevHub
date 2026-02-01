@@ -7,21 +7,42 @@ import {
   Calendar, RotateCcw, Loader2, ExternalLink, FileText, AlertCircle
 } from 'lucide-react';
 
+// --- INTERFACES FOR TYPE SAFETY ---
+interface Task {
+  _id: string;
+  title: string;
+  module: string;
+  difficulty: string;
+  type: 'video' | 'pdf' | 'link';
+  status: 'Draft' | 'Active' | 'Completed';
+  endDate: string;
+  content: string;
+}
+
+interface StatsData {
+  pending: number;
+  active: number;
+  completed: number;
+}
+
 const StudentTaskView = () => {
-  const [tasks, setTasks] = useState([]);
+  const [tasks, setTasks] = useState<Task[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
-  const [statsData, setStatsData] = useState({ pending: 0, active: 0, completed: 0 });
+  const [statsData, setStatsData] = useState<StatsData>({ pending: 0, active: 0, completed: 0 });
+
+  // Use Environment Variable for Production API
+  const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
 
   const fetchData = async () => {
     try {
       setLoading(true);
       const [tasksRes, statsRes] = await Promise.all([
-        axios.get('http://localhost:5000/api/tasks/student/tasks', { withCredentials: true }),
-        axios.get('http://localhost:5000/api/tasks/stats', { withCredentials: true })
+        axios.get(`${API_BASE}/tasks/student/tasks`, { withCredentials: true }),
+        axios.get(`${API_BASE}/tasks/stats`, { withCredentials: true })
       ]);
-      setTasks(tasksRes.data);
-      setStatsData(statsRes.data);
+      setTasks(tasksRes.data || []);
+      setStatsData(statsRes.data || { pending: 0, active: 0, completed: 0 });
     } catch (error) {
       console.error("Error fetching data:", error);
     } finally {
@@ -33,25 +54,31 @@ const StudentTaskView = () => {
 
   const handleUpdate = async (taskId: string, newValue: string) => {
     try {
-      setTasks((prev: any) => prev.map((t: any) => t._id === taskId ? { ...t, status: newValue } : t));
-      await axios.patch(`http://localhost:5000/api/tasks/${taskId}/update`, {
+      // Optimistic UI update
+      setTasks((prev) => prev.map((t) => t._id === taskId ? { ...t, status: newValue as any } : t));
+      
+      await axios.patch(`${API_BASE}/tasks/${taskId}/update`, {
         status: newValue
       }, { withCredentials: true });
-      const statsRes = await axios.get('http://localhost:5000/api/tasks/stats', { withCredentials: true });
+      
+      const statsRes = await axios.get(`${API_BASE}/tasks/stats`, { withCredentials: true });
       setStatsData(statsRes.data);
     } catch (error) {
       alert("Failed to update status");
-      fetchData();
+      fetchData(); // Rollback on error
     }
   };
 
   const openTaskContent = (content: string) => {
     if (!content) return alert("No resources available for this task.");
-    const finalUrl = content.startsWith('http') ? content : `http://localhost:5000/uploads/${content}`;
+    // If content is a URL, open it. If it's a filename, point to backend uploads.
+    const finalUrl = content.startsWith('http') 
+      ? content 
+      : `${API_BASE.replace('/api', '')}/uploads/${content}`;
     window.open(finalUrl, '_blank');
   };
 
-  const filteredTasks = tasks.filter((t: any) => 
+  const filteredTasks = tasks.filter((t) => 
     t.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
     t.module.toLowerCase().includes(searchTerm.toLowerCase())
   );
@@ -64,12 +91,11 @@ const StudentTaskView = () => {
 
   return (
     <div className="min-h-screen bg-[#F8FAFC] text-slate-900 font-sans pb-20">
-      {/* MINIMAL HEADER (Empty but kept for top-spacing/blur) */}
       <header className="bg-white/60 backdrop-blur-md h-6 sticky top-0 z-50" />
 
       <main className="max-w-[1200px] mx-auto p-8 pt-4 space-y-10">
         
-        {/* PARALLEL ROADMAP & SEARCH + REFRESH */}
+        {/* HEADER SECTION */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
           <div>
             <h1 className="text-4xl font-black text-slate-900 mb-2 tracking-tight">Task Roadmap</h1>
@@ -77,7 +103,6 @@ const StudentTaskView = () => {
           </div>
 
           <div className="flex items-center gap-3 w-full md:w-auto">
-            {/* Integrated Search Bar */}
             <div className="relative flex-grow md:w-80">
               <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
               <input 
@@ -89,7 +114,6 @@ const StudentTaskView = () => {
               />
             </div>
 
-            {/* Refresh Button placed parallel to search */}
             <button 
               onClick={fetchData} 
               disabled={loading}
@@ -133,7 +157,7 @@ const StudentTaskView = () => {
                 </thead>
                 <tbody className="divide-y divide-slate-50">
                   <AnimatePresence>
-                    {filteredTasks.map((task: any) => (
+                    {filteredTasks.map((task) => (
                       <motion.tr 
                         initial={{ opacity: 0 }} 
                         animate={{ opacity: 1 }} 

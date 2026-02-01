@@ -3,24 +3,49 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { motion } from 'framer-motion';
 import { 
-  CheckCircle, Clock, AlertCircle, ChevronDown, 
-  PlayCircle, Loader2, FileText, Link2 
+  CheckCircle, Clock, AlertCircle, 
+  PlayCircle, Loader2, FileText 
 } from 'lucide-react';
 
+// --- INTERFACES FOR TYPE SAFETY ---
+interface Task {
+  _id: string;
+  title: string;
+  module: string;
+  endDate: string;
+  status: 'Completed' | 'Active' | 'Pending';
+}
+
+interface Resource {
+  _id: string;
+  title: string;
+  url: string;
+  type: 'video' | 'article';
+  category: string;
+  updatedAt: string;
+}
+
+interface UserData {
+  name: string;
+  attendance?: number;
+}
+
 const StudentDashboard = () => {
-  const [tasks, setTasks] = useState([]);
-  const [resources, setResources] = useState([]);
-  const [user, setUser] = useState<{ name: string; attendance?: number } | null>(null);
+  const [tasks, setTasks] = useState<Task[]>([]);
+  const [resources, setResources] = useState<Resource[]>([]);
+  const [user, setUser] = useState<UserData | null>(null);
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState({ completed: 0, active: 0, stuck: 0 });
+
+  // Use Environment Variable for the API Base
+  const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
 
   useEffect(() => {
     const fetchDashboardData = async () => {
       try {
         setLoading(true);
-        // Base URL helper to keep code clean
-        const API_BASE = 'http://localhost:5000/api';
-
+        
+        // Fetching all data in parallel for speed
         const [profileRes, tasksRes, statsRes, resourceRes] = await Promise.all([
           axios.get(`${API_BASE}/auth/profile`, { withCredentials: true }),
           axios.get(`${API_BASE}/tasks/student/tasks?limit=5`, { withCredentials: true }),
@@ -29,10 +54,15 @@ const StudentDashboard = () => {
         ]);
         
         setUser(profileRes.data);
-        setTasks(tasksRes.data);
-        setResources(resourceRes.data.sort((a: any, b: any) => 
-          new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()
-        ).slice(0, 3));
+        setTasks(tasksRes.data || []);
+        
+        // Sort and slice resources safely
+        if (resourceRes.data && Array.isArray(resourceRes.data)) {
+            const sortedResources = resourceRes.data.sort((a: Resource, b: Resource) => 
+              new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()
+            ).slice(0, 3);
+            setResources(sortedResources);
+        }
         
         setStats({
           completed: statsRes.data.completed || 0,
@@ -46,7 +76,7 @@ const StudentDashboard = () => {
       }
     };
     fetchDashboardData();
-  }, []);
+  }, [API_BASE]);
 
   if (loading) {
     return (
@@ -105,7 +135,7 @@ const StudentDashboard = () => {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-50">
-                {tasks.length > 0 ? tasks.map((task: any) => (
+                {tasks.length > 0 ? tasks.map((task) => (
                   <tr key={task._id} className="hover:bg-slate-50/50 transition-colors">
                     <td className="px-8 py-5">
                       <div className="flex flex-col">
@@ -137,7 +167,7 @@ const StudentDashboard = () => {
         <div className="space-y-6">
           <h3 className="font-black text-xl text-slate-900 tracking-tight px-2">New Resources</h3>
           <div className="space-y-4">
-            {resources.map((res: any) => (
+            {resources.map((res) => (
               <motion.div 
                 whileHover={{ x: 5 }}
                 key={res._id} 
@@ -171,9 +201,17 @@ const StudentDashboard = () => {
   );
 };
 
-// Reusable Stat Card Component
-const StatCard = ({ label, count, icon, color }: any) => {
-  const colors: any = {
+// --- REUSABLE COMPONENTS ---
+
+interface StatCardProps {
+    label: string;
+    count: number;
+    icon: React.ReactNode;
+    color: 'emerald' | 'indigo' | 'orange';
+}
+
+const StatCard = ({ label, count, icon, color }: StatCardProps) => {
+  const colors = {
     emerald: "bg-emerald-50 text-emerald-500",
     indigo: "bg-indigo-50 text-indigo-500",
     orange: "bg-orange-50 text-orange-500"

@@ -6,7 +6,7 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
-// --- INTERFACES FOR TYPE SAFETY ---
+// --- INTERFACES FOR PRODUCTION TYPE SAFETY ---
 interface CodingHandles {
   github?: string;
   leetcode?: string;
@@ -30,7 +30,7 @@ const StudentProfile = () => {
 
   const [formData, setFormData] = useState({
     name: '',
-    title: '',
+    title: '', 
     github: '',
     leetcode: '',
     linkedin: '',
@@ -38,13 +38,16 @@ const StudentProfile = () => {
     codeforces: ''
   });
 
-  // UPDATED: Uses environment variable for production
-  const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api/auth';
+  // PRODUCTION API CONFIG - Uses Render URL in production
+  const API_BASE = process.env.NEXT_PUBLIC_API_URL 
+    ? `${process.env.NEXT_PUBLIC_API_URL}/auth` 
+    : 'http://localhost:5000/api/auth';
 
   useEffect(() => { fetchProfile(); }, []);
 
   const fetchProfile = async () => {
     try {
+      setLoading(true);
       const res = await axios.get(`${API_BASE}/profile`, { withCredentials: true });
       const userData = res.data;
       setUser(userData);
@@ -74,7 +77,7 @@ const StudentProfile = () => {
       setUser(res.data);
       setIsEditModalOpen(false);
     } catch (err) { 
-      alert("Update failed"); 
+      alert("Update failed. Please check your connection."); 
     } finally { 
       setSaving(false); 
     }
@@ -82,7 +85,10 @@ const StudentProfile = () => {
 
   if (loading) return (
     <div className="flex h-screen items-center justify-center bg-slate-50">
-      <Loader2 className="animate-spin text-indigo-600" size={40} />
+      <div className="flex flex-col items-center gap-2">
+        <Loader2 className="animate-spin text-indigo-600" size={40} />
+        <p className="text-slate-400 font-bold text-xs uppercase tracking-widest">Loading Profile...</p>
+      </div>
     </div>
   );
 
@@ -93,11 +99,11 @@ const StudentProfile = () => {
         {/* Header Section */}
         <div className="bg-white rounded-[2rem] p-8 border border-slate-100 shadow-sm flex flex-col md:flex-row items-center justify-between gap-6">
           <div className="flex flex-col md:flex-row items-center gap-6">
-            <div className="w-32 h-32 bg-indigo-100 rounded-3xl overflow-hidden">
+            <div className="w-32 h-32 bg-indigo-100 rounded-3xl overflow-hidden border-4 border-white shadow-inner">
               <img src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${user?.name}`} alt="avatar" />
             </div>
             <div className="text-center md:text-left">
-              <h1 className="text-3xl font-black text-slate-900">{user?.name}</h1>
+              <h1 className="text-3xl font-black text-slate-900 tracking-tight">{user?.name}</h1>
               <p className="text-indigo-600 font-bold text-xs uppercase tracking-widest mt-1">
                 {user?.title || 'Full-Stack Student'}
               </p>
@@ -106,7 +112,7 @@ const StudentProfile = () => {
           </div>
           <button 
             onClick={() => setIsEditModalOpen(true)} 
-            className="bg-indigo-600 text-white px-8 py-3 rounded-2xl font-black text-sm flex items-center gap-2 hover:bg-indigo-700 shadow-lg shadow-indigo-100 transition-all"
+            className="bg-indigo-600 text-white px-8 py-3 rounded-2xl font-black text-sm flex items-center gap-2 hover:bg-indigo-700 shadow-xl shadow-indigo-100 transition-all active:scale-95"
           >
             <Edit3 size={18} /> Edit Profile
           </button>
@@ -127,33 +133,31 @@ const StudentProfile = () => {
         {isEditModalOpen && (
           <div className="fixed inset-0 z-[110] flex items-center justify-center p-4">
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setIsEditModalOpen(false)} className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm" />
-            <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }} className="relative bg-white w-full max-w-lg rounded-[2.5rem] p-8 shadow-2xl max-h-[90vh] overflow-y-auto custom-scrollbar">
+            <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }} className="relative bg-white w-full max-w-lg rounded-[2.5rem] p-10 shadow-2xl max-h-[90vh] overflow-y-auto custom-scrollbar">
               <div className="flex justify-between items-center mb-6">
-                <h3 className="text-xl font-black text-slate-900">Update Profile</h3>
-                <button onClick={() => setIsEditModalOpen(false)} className="text-slate-400 hover:text-slate-900 transition-colors"><X /></button>
+                <h3 className="text-2xl font-black text-slate-900">Update Profile</h3>
+                <button onClick={() => setIsEditModalOpen(false)} className="text-slate-300 hover:text-slate-900 transition-colors p-2 hover:bg-slate-50 rounded-full"><X /></button>
               </div>
 
-              <form onSubmit={handleUpdate} className="space-y-4">
+              <form onSubmit={handleUpdate} className="space-y-5">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {/* FIXED: Explicitly typed 'v' to string */}
                   <Input label="Full Name" value={formData.name} onChange={(v: string) => setFormData({...formData, name: v})} />
-                  <Input label="Professional Title" value={formData.title} onChange={(v: string) => setFormData({...formData, title: v})} placeholder="e.g. Frontend Developer" />
+                  <Input label="Professional Title" value={formData.title} onChange={(v: string) => setFormData({...formData, title: v})} placeholder="e.g. Web Developer" />
                 </div>
                 
                 <div className="h-px bg-slate-100 my-4" />
                 <p className="text-[10px] font-black text-indigo-400 uppercase tracking-widest mb-2">Social & Coding Handles</p>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {/* FIXED: Explicitly typed 'v' to string for all fields */}
                   <Input label="GitHub Username" value={formData.github} onChange={(v: string) => setFormData({...formData, github: v})} />
                   <Input label="LeetCode Username" value={formData.leetcode} onChange={(v: string) => setFormData({...formData, leetcode: v})} />
-                  <Input label="LinkedIn Username/URL" value={formData.linkedin} onChange={(v: string) => setFormData({...formData, linkedin: v})} />
+                  <Input label="LinkedIn (User/URL)" value={formData.linkedin} onChange={(v: string) => setFormData({...formData, linkedin: v})} />
                   <Input label="Telegram Username" value={formData.telegram} onChange={(v: string) => setFormData({...formData, telegram: v})} />
                   <Input label="Codeforces Username" value={formData.codeforces} onChange={(v: string) => setFormData({...formData, codeforces: v})} />
                 </div>
 
-                <button type="submit" disabled={saving} className="w-full bg-indigo-600 text-white py-4 rounded-2xl font-black mt-4 flex justify-center items-center gap-2 hover:bg-indigo-700 transition-all">
-                  {saving ? <Loader2 className="animate-spin" size={20} /> : 'Save Changes'}
+                <button type="submit" disabled={saving} className="w-full bg-indigo-600 text-white py-5 rounded-2xl font-black text-lg mt-6 flex justify-center items-center gap-2 hover:bg-indigo-700 shadow-xl shadow-indigo-100 transition-all active:scale-95 disabled:opacity-70">
+                  {saving ? <Loader2 className="animate-spin" size={24} /> : 'Save Profile Changes'}
                 </button>
               </form>
             </motion.div>
@@ -166,7 +170,6 @@ const StudentProfile = () => {
 
 // --- HELPER COMPONENTS ---
 
-// FIXED: Defined props interface to avoid 'any' type errors
 interface InputProps {
   label: string;
   value: string;
@@ -180,7 +183,7 @@ const Input = ({ label, value, onChange, placeholder }: InputProps) => (
     <input 
       type="text" value={value} placeholder={placeholder}
       onChange={(e) => onChange(e.target.value)}
-      className="w-full bg-slate-50 border border-transparent rounded-2xl px-5 py-3 text-sm font-bold focus:ring-2 focus:ring-indigo-500 focus:bg-white transition-all outline-none"
+      className="w-full bg-slate-50 border border-transparent rounded-2xl px-5 py-3.5 text-sm font-bold focus:ring-2 focus:ring-indigo-500 focus:bg-white transition-all outline-none"
     />
   </div>
 );
@@ -188,12 +191,13 @@ const Input = ({ label, value, onChange, placeholder }: InputProps) => (
 const HandleCard = ({ type, username, icon }: { type: string, username: string | undefined, icon: React.ReactNode }) => {
   const getUrl = () => {
     if (!username) return null;
+    const clean = username.trim();
     switch(type) {
-      case 'github': return `https://github.com/${username}`;
-      case 'leetcode': return `https://leetcode.com/${username}`;
-      case 'linkedin': return username.includes('linkedin.com') ? username : `https://linkedin.com/in/${username}`;
-      case 'telegram': return `https://t.me/${username.replace('@', '')}`;
-      case 'codeforces': return `https://codeforces.com/profile/${username}`;
+      case 'github': return `https://github.com/${clean}`;
+      case 'leetcode': return `https://leetcode.com/${clean}`;
+      case 'linkedin': return clean.includes('linkedin.com') ? clean : `https://linkedin.com/in/${clean}`;
+      case 'telegram': return `https://t.me/${clean.replace('@', '')}`;
+      case 'codeforces': return `https://codeforces.com/profile/${clean}`;
       default: return null;
     }
   };
@@ -201,16 +205,16 @@ const HandleCard = ({ type, username, icon }: { type: string, username: string |
   const url = getUrl();
 
   return (
-    <div className="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm flex items-center justify-between group hover:border-indigo-100 transition-all">
+    <div className="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm flex items-center justify-between group hover:border-indigo-100 hover:shadow-md transition-all">
       <div className="flex items-center gap-4">
-        <div className="p-3 bg-slate-50 rounded-2xl text-slate-400 group-hover:text-indigo-600 transition-colors">{icon}</div>
+        <div className="p-3 bg-slate-50 rounded-2xl text-slate-400 group-hover:text-indigo-600 group-hover:bg-indigo-50 transition-colors">{icon}</div>
         <div className="overflow-hidden">
-          <p className="text-sm font-black text-slate-800 capitalize">{type}</p>
-          <p className="text-xs text-slate-400 font-medium truncate max-w-[140px]">{username || 'Not linked'}</p>
+          <p className="text-xs font-black text-slate-800 capitalize tracking-tight">{type}</p>
+          <p className="text-[11px] text-slate-400 font-bold truncate max-w-[140px]">{username || 'Not linked'}</p>
         </div>
       </div>
       {url && (
-        <a href={url} target="_blank" rel="noopener noreferrer" className="p-2 bg-slate-50 rounded-xl text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 transition-all">
+        <a href={url} target="_blank" rel="noopener noreferrer" className="p-2 bg-slate-50 rounded-xl text-slate-400 hover:text-indigo-600 hover:bg-indigo-100 transition-all">
           <ExternalLink size={16} />
         </a>
       )}

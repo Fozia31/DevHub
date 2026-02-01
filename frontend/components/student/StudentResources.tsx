@@ -7,17 +7,29 @@ import {
   Search, ExternalLink, Loader2 
 } from 'lucide-react';
 
+// --- INTERFACES FOR TYPE SAFETY ---
+interface Resource {
+  _id: string;
+  title: string;
+  url: string;
+  type: 'video' | 'pdf' | 'link';
+  status?: string;
+}
+
 const StudentResources = () => {
-  const [resources, setResources] = useState([]);
+  const [resources, setResources] = useState<Resource[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [activeTab, setActiveTab] = useState('All Types');
   const [loading, setLoading] = useState(true);
 
+  // Production API Base URL
+  const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
+
   const fetchResources = async () => {
     try {
       setLoading(true);
-      const response = await axios.get('http://localhost:5000/api/resources', { withCredentials: true });
-      setResources(response.data);
+      const response = await axios.get(`${API_BASE}/resources`, { withCredentials: true });
+      setResources(Array.isArray(response.data) ? response.data : []);
     } catch (error) {
       console.error("Error fetching resources:", error);
     } finally {
@@ -28,7 +40,7 @@ const StudentResources = () => {
   useEffect(() => { fetchResources(); }, []);
 
   // HELPER: Extract YouTube Thumbnail
-  const getResourceCover = (res: any) => {
+  const getResourceCover = (res: Resource) => {
     if (res.type === 'video') {
       const regExp = /^.*((youtu.be\/)|(v\/)|(\/u\/\w\/)|(embed\/)|(watch\?))\??v?=?([^#&?]*).*/;
       const match = res.url.match(regExp);
@@ -44,12 +56,12 @@ const StudentResources = () => {
 
   const handleStatusUpdate = async (id: string, newStatus: string) => {
     const previousResources = [...resources];
-    setResources((prev: any) => 
-      prev.map((r: any) => r._id === id ? { ...r, status: newStatus } : r)
+    setResources((prev) => 
+      prev.map((r) => r._id === id ? { ...r, status: newStatus } : r)
     );
 
     try {
-      await axios.patch(`http://localhost:5000/api/resources/${id}/status`, 
+      await axios.patch(`${API_BASE}/resources/${id}/status`, 
         { status: newStatus },
         { withCredentials: true }
       );
@@ -59,17 +71,24 @@ const StudentResources = () => {
     }
   };
 
-  const filteredResources = resources.filter((res: any) => {
+  const filteredResources = resources.filter((res) => {
     const matchesSearch = res.title.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesTab = activeTab === 'All Types' || (activeTab === 'Videos' && res.type === 'video') || (activeTab === 'PDFs' && res.type === 'pdf') || (activeTab === 'Links' && res.type === 'link');
+    const matchesTab = activeTab === 'All Types' || 
+                       (activeTab === 'Videos' && res.type === 'video') || 
+                       (activeTab === 'PDFs' && res.type === 'pdf') || 
+                       (activeTab === 'Links' && res.type === 'link');
     return matchesSearch && matchesTab;
   });
 
   const totalItems = resources.length;
-  const completedItems = resources.filter((r: any) => r.status === 'Done').length;
+  const completedItems = resources.filter((r) => r.status === 'Done').length;
   const completionPercentage = totalItems > 0 ? Math.round((completedItems / totalItems) * 100) : 0;
 
-  if (loading) return <div className="h-screen flex items-center justify-center"><Loader2 className="animate-spin text-indigo-600" size={40} /></div>;
+  if (loading) return (
+    <div className="h-screen flex items-center justify-center bg-[#FDFDFF]">
+      <Loader2 className="animate-spin text-indigo-600" size={40} />
+    </div>
+  );
 
   return (
     <div className="min-h-screen bg-[#FDFDFF] p-6 lg:p-12">
@@ -85,7 +104,7 @@ const StudentResources = () => {
             <span className="text-indigo-600 font-bold">{completionPercentage}%</span>
           </div>
           <div className="w-full bg-slate-100 h-2.5 rounded-full overflow-hidden">
-            <motion.div animate={{ width: `${completionPercentage}%` }} className="bg-indigo-500 h-full" />
+            <motion.div initial={{ width: 0 }} animate={{ width: `${completionPercentage}%` }} className="bg-indigo-500 h-full" />
           </div>
         </div>
       </div>
@@ -94,20 +113,20 @@ const StudentResources = () => {
       <div className="max-w-7xl mx-auto mb-10 flex flex-col md:flex-row justify-between gap-6">
         <div className="flex gap-2 p-1.5 bg-slate-100 rounded-2xl w-fit">
           {['All Types', 'Videos', 'PDFs', 'Links'].map((tab) => (
-            <button key={tab} onClick={() => setActiveTab(tab)} className={`px-6 py-2 rounded-xl text-sm font-bold ${activeTab === tab ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-500'}`}>{tab}</button>
+            <button key={tab} onClick={() => setActiveTab(tab)} className={`px-6 py-2 rounded-xl text-sm font-bold transition-all ${activeTab === tab ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-500 hover:text-indigo-400'}`}>{tab}</button>
           ))}
         </div>
         <div className="relative flex-1 max-w-md">
           <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
-          <input type="text" placeholder="Search resources..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="w-full pl-12 pr-4 py-3.5 bg-white border border-slate-200 rounded-2xl focus:border-indigo-500 outline-none" />
+          <input type="text" placeholder="Search resources..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="w-full pl-12 pr-4 py-3.5 bg-white border border-slate-200 rounded-2xl focus:border-indigo-500 outline-none transition-all" />
         </div>
       </div>
 
       {/* GRID */}
       <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
         <AnimatePresence mode='popLayout'>
-          {filteredResources.map((res: any) => (
-            <motion.div layout key={res._id} initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="bg-white rounded-[2.5rem] border border-slate-100 overflow-hidden shadow-sm hover:shadow-xl transition-all flex flex-col group">
+          {filteredResources.map((res) => (
+            <motion.div layout key={res._id} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95 }} className="bg-white rounded-[2.5rem] border border-slate-100 overflow-hidden shadow-sm hover:shadow-xl transition-all flex flex-col group">
               <div className="relative h-52 overflow-hidden bg-slate-200">
                 <img 
                   src={getResourceCover(res)} 
@@ -145,7 +164,16 @@ const StudentResources = () => {
   );
 };
 
-const StatusBtn = ({ icon, label, active, onClick, color }: any) => (
+// --- REUSABLE SUB-COMPONENT ---
+interface StatusBtnProps {
+  icon: React.ReactNode;
+  label: string;
+  active: boolean;
+  onClick: () => void;
+  color: string;
+}
+
+const StatusBtn = ({ icon, label, active, onClick, color }: StatusBtnProps) => (
   <button onClick={onClick} className={`flex flex-col items-center justify-center py-3 rounded-xl border transition-all ${active ? `${color} border-transparent text-white shadow-lg` : 'bg-slate-50 text-slate-400 hover:bg-slate-100'}`}>
     {icon}
     <span className="text-[9px] font-bold mt-1 uppercase">{label}</span>

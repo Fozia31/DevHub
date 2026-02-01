@@ -12,12 +12,34 @@ import {
   AlertCircle 
 } from 'lucide-react';
 
+// --- TYPE DEFINITIONS FOR VERCEL BUILD SAFETY ---
+interface Activity {
+  studentName: string;
+  taskName: string;
+  status: string;
+  lastUpdated: string;
+}
+
+interface DashboardStats {
+  students: number;
+  pending: number;
+  resources: number;
+}
+
+interface AdminProfile {
+  name: string;
+  avatar: string;
+}
+
 const AdminDashboard = () => {
-  const [activities, setActivities] = useState([]);
-  const [stats, setStats] = useState({ students: 0, pending: 0, resources: 0 });
-  const [adminInfo, setAdminInfo] = useState({ name: 'Admin', avatar: '' }); // Added state for Admin Profile
+  const [activities, setActivities] = useState<Activity[]>([]);
+  const [stats, setStats] = useState<DashboardStats>({ students: 0, pending: 0, resources: 0 });
+  const [adminInfo, setAdminInfo] = useState<AdminProfile>({ name: 'Admin', avatar: '' });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  // Use the Environment Variable for Production
+  const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
 
   useEffect(() => {
     const fetchAdminData = async () => {
@@ -25,13 +47,13 @@ const AdminDashboard = () => {
         setLoading(true);
         setError(null);
         
-        // 1. Fetch Profile Data & Stats in parallel
+        // Parallel fetching for performance
         const [statsRes, profileRes] = await Promise.all([
-          axios.get('http://localhost:5000/api/admin/stats', { withCredentials: true }),
-          axios.get('http://localhost:5000/api/auth/profile', { withCredentials: true }) // Adjust this endpoint to your profile route
+          axios.get(`${API_BASE}/admin/stats`, { withCredentials: true }),
+          axios.get(`${API_BASE}/auth/profile`, { withCredentials: true })
         ]);
         
-        // Map Stats
+        // Map Stats safely
         setStats({
           students: statsRes.data?.userCount || 0,
           pending: statsRes.data?.pendingTasksCount || 0,
@@ -40,7 +62,7 @@ const AdminDashboard = () => {
         
         setActivities(statsRes.data?.recentActivity || []);
 
-        // 2. Set Admin Info from backend
+        // Set Admin Info
         const name = profileRes.data?.name || 'Admin User';
         setAdminInfo({
           name: name,
@@ -49,20 +71,20 @@ const AdminDashboard = () => {
 
       } catch (err: any) {
         console.error("Admin fetch error:", err);
-        setError("Could not connect to the server. Please ensure the backend is running.");
+        setError("Could not connect to the server. Please check your Render backend status.");
       } finally {
         setLoading(false);
       }
     };
     fetchAdminData();
-  }, []);
+  }, [API_BASE]);
 
   if (loading) {
     return (
       <div className="flex h-[60vh] items-center justify-center">
         <div className="flex flex-col items-center gap-4">
           <Loader2 className="animate-spin text-indigo-600" size={40} />
-          <p className="text-slate-500 font-bold animate-pulse">Fetching Dashboard Data...</p>
+          <p className="text-slate-500 font-bold animate-pulse text-xs uppercase tracking-widest">Fetching Dashboard Data...</p>
         </div>
       </div>
     );
@@ -78,7 +100,7 @@ const AdminDashboard = () => {
         </div>
       )}
 
-
+      {/* HEADER SECTION */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <h2 className="text-2xl font-black text-slate-900 tracking-tight">Admin Dashboard Overview</h2>
         
@@ -94,22 +116,22 @@ const AdminDashboard = () => {
           
           <div className="flex items-center gap-3 pl-4 border-l border-slate-200">
             <div className="text-right hidden sm:block">
-
               <p className="text-xs font-black text-slate-900">{adminInfo.name}</p>
-              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-tighter">Admin</p>
+              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-tighter">Admin Access</p>
             </div>
             <img 
               src={adminInfo.avatar} 
-              className="w-10 h-10 rounded-full border-2 border-white shadow-sm" 
+              className="w-10 h-10 rounded-full border-2 border-white shadow-sm bg-indigo-100" 
               alt="Admin" 
             />
           </div>
         </div>
       </div>
 
+      {/* STATS GRID */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         {[
-          { label: 'Total Students', value: stats.students, icon: <Users size={24} />, color: 'text-indigo-600', bg: 'bg-indigo-50' },
+          { label: 'Total Students', value: stats.students, icon: <Users size={24} />, color: 'text-indigo-600', bg: 'bg-indigo-50', sub: 'Enrolled' },
           { label: 'Tasks Pending', value: stats.pending, sub: 'Requires Review', icon: <ClipboardList size={24} />, color: 'text-orange-600', bg: 'bg-orange-50' },
           { label: 'Resources Assigned', value: stats.resources, sub: 'Active Modules', icon: <BookOpen size={24} />, color: 'text-purple-600', bg: 'bg-purple-50' }
         ].map((item, i) => (
@@ -128,8 +150,9 @@ const AdminDashboard = () => {
         ))}
       </div>
 
+      {/* ACTIVITY TABLE */}
       <div className="bg-white rounded-[2.5rem] border border-slate-100 shadow-sm overflow-hidden">
-        <div className="p-8 border-b border-slate-50 flex justify-between items-center">
+        <div className="p-8 border-b border-slate-50 flex justify-between items-center bg-slate-50/20">
           <div>
             <h3 className="font-black text-slate-900 text-lg">Recent Student Activity</h3>
             <p className="text-xs text-slate-400 font-medium mt-1">Real-time task submission updates across all Developers.</p>
@@ -151,7 +174,7 @@ const AdminDashboard = () => {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-50">
-              {activities.length > 0 ? activities.map((item: any, idx) => (
+              {activities.length > 0 ? activities.map((item, idx) => (
                 <tr key={idx} className="hover:bg-slate-50/50 transition-colors group">
                   <td className="px-8 py-5 flex items-center gap-3">
                     <img 
