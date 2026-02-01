@@ -12,7 +12,12 @@ import adminTaskRoutes from './routes/v1/admin.task.routes';
 
 import Task from './models/Task';
 import User from './models/User';
+import { fileURLToPath } from 'url';
+import { dirname } from 'path';
 
+// This recreates __dirname for ES Modules
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 dotenv.config();
 connectDB();
 
