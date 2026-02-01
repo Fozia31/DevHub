@@ -2,20 +2,35 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { 
-  Github, ExternalLink, Edit3, Award, Calendar, 
-  CheckCircle2, Trophy, Loader2, X, Linkedin, Send, Terminal
+  Github, ExternalLink, Edit3, Loader2, X, Linkedin, Send, Terminal, Trophy
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
+// --- INTERFACES FOR TYPE SAFETY ---
+interface CodingHandles {
+  github?: string;
+  leetcode?: string;
+  linkedin?: string;
+  telegram?: string;
+  codeforces?: string;
+}
+
+interface UserProfile {
+  name: string;
+  email: string;
+  title?: string;
+  codingHandles?: CodingHandles;
+}
+
 const StudentProfile = () => {
-  const [user, setUser] = useState<any>(null);
+  const [user, setUser] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [saving, setSaving] = useState(false);
 
   const [formData, setFormData] = useState({
     name: '',
-    title: '', // New field for subtitle
+    title: '',
     github: '',
     leetcode: '',
     linkedin: '',
@@ -23,26 +38,32 @@ const StudentProfile = () => {
     codeforces: ''
   });
 
-  const API_BASE = 'http://localhost:5000/api/auth';
+  // UPDATED: Uses environment variable for production
+  const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api/auth';
 
   useEffect(() => { fetchProfile(); }, []);
 
   const fetchProfile = async () => {
     try {
       const res = await axios.get(`${API_BASE}/profile`, { withCredentials: true });
-      setUser(res.data);
-      const h = res.data.codingHandles;
+      const userData = res.data;
+      setUser(userData);
+      
+      const h = userData.codingHandles;
       setFormData({
-        name: res.data.name,
-        title: res.data.title || 'Full-Stack Student', // Set default if empty
+        name: userData.name || '',
+        title: userData.title || 'Full-Stack Student',
         github: h?.github || '',
         leetcode: h?.leetcode || '',
         linkedin: h?.linkedin || '',
         telegram: h?.telegram || '',
         codeforces: h?.codeforces || ''
       });
-    } catch (err) { console.error(err); } 
-    finally { setLoading(false); }
+    } catch (err) { 
+      console.error("Fetch error:", err); 
+    } finally { 
+      setLoading(false); 
+    }
   };
 
   const handleUpdate = async (e: React.FormEvent) => {
@@ -52,11 +73,18 @@ const StudentProfile = () => {
       const res = await axios.patch(`${API_BASE}/profile`, formData, { withCredentials: true });
       setUser(res.data);
       setIsEditModalOpen(false);
-    } catch (err) { alert("Update failed"); } 
-    finally { setSaving(false); }
+    } catch (err) { 
+      alert("Update failed"); 
+    } finally { 
+      setSaving(false); 
+    }
   };
 
-  if (loading) return <div className="flex h-screen items-center justify-center bg-slate-50"><Loader2 className="animate-spin text-indigo-600" size={40} /></div>;
+  if (loading) return (
+    <div className="flex h-screen items-center justify-center bg-slate-50">
+      <Loader2 className="animate-spin text-indigo-600" size={40} />
+    </div>
+  );
 
   return (
     <div className="min-h-screen bg-slate-50 pt-28 p-4 md:p-8">
@@ -70,14 +98,16 @@ const StudentProfile = () => {
             </div>
             <div className="text-center md:text-left">
               <h1 className="text-3xl font-black text-slate-900">{user?.name}</h1>
-              {/* EDITABLE SUBTITLE DISPLAYED HERE */}
               <p className="text-indigo-600 font-bold text-xs uppercase tracking-widest mt-1">
                 {user?.title || 'Full-Stack Student'}
               </p>
               <p className="text-slate-400 text-sm font-medium">{user?.email}</p>
             </div>
           </div>
-          <button onClick={() => setIsEditModalOpen(true)} className="bg-indigo-600 text-white px-8 py-3 rounded-2xl font-black text-sm flex items-center gap-2 hover:bg-indigo-700 shadow-lg shadow-indigo-100 transition-all">
+          <button 
+            onClick={() => setIsEditModalOpen(true)} 
+            className="bg-indigo-600 text-white px-8 py-3 rounded-2xl font-black text-sm flex items-center gap-2 hover:bg-indigo-700 shadow-lg shadow-indigo-100 transition-all"
+          >
             <Edit3 size={18} /> Edit Profile
           </button>
         </div>
@@ -105,20 +135,21 @@ const StudentProfile = () => {
 
               <form onSubmit={handleUpdate} className="space-y-4">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <Input label="Full Name" value={formData.name} onChange={(v) => setFormData({...formData, name: v})} />
-                  {/* SUBTITLE EDIT INPUT */}
-                  <Input label="Professional Title" value={formData.title} onChange={(v) => setFormData({...formData, title: v})} placeholder="e.g. Frontend Developer" />
+                  {/* FIXED: Explicitly typed 'v' to string */}
+                  <Input label="Full Name" value={formData.name} onChange={(v: string) => setFormData({...formData, name: v})} />
+                  <Input label="Professional Title" value={formData.title} onChange={(v: string) => setFormData({...formData, title: v})} placeholder="e.g. Frontend Developer" />
                 </div>
                 
                 <div className="h-px bg-slate-100 my-4" />
                 <p className="text-[10px] font-black text-indigo-400 uppercase tracking-widest mb-2">Social & Coding Handles</p>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <Input label="GitHub Username" value={formData.github} onChange={(v) => setFormData({...formData, github: v})} />
-                  <Input label="LeetCode Username" value={formData.leetcode} onChange={(v) => setFormData({...formData, leetcode: v})} />
-                  <Input label="LinkedIn Username/URL" value={formData.linkedin} onChange={(v) => setFormData({...formData, linkedin: v})} />
-                  <Input label="Telegram Username" value={formData.telegram} onChange={(v) => setFormData({...formData, telegram: v})} />
-                  <Input label="Codeforces Username" value={formData.codeforces} onChange={(v) => setFormData({...formData, codeforces: v})} />
+                  {/* FIXED: Explicitly typed 'v' to string for all fields */}
+                  <Input label="GitHub Username" value={formData.github} onChange={(v: string) => setFormData({...formData, github: v})} />
+                  <Input label="LeetCode Username" value={formData.leetcode} onChange={(v: string) => setFormData({...formData, leetcode: v})} />
+                  <Input label="LinkedIn Username/URL" value={formData.linkedin} onChange={(v: string) => setFormData({...formData, linkedin: v})} />
+                  <Input label="Telegram Username" value={formData.telegram} onChange={(v: string) => setFormData({...formData, telegram: v})} />
+                  <Input label="Codeforces Username" value={formData.codeforces} onChange={(v: string) => setFormData({...formData, codeforces: v})} />
                 </div>
 
                 <button type="submit" disabled={saving} className="w-full bg-indigo-600 text-white py-4 rounded-2xl font-black mt-4 flex justify-center items-center gap-2 hover:bg-indigo-700 transition-all">
@@ -135,7 +166,15 @@ const StudentProfile = () => {
 
 // --- HELPER COMPONENTS ---
 
-const Input = ({ label, value, onChange, placeholder }: any) => (
+// FIXED: Defined props interface to avoid 'any' type errors
+interface InputProps {
+  label: string;
+  value: string;
+  onChange: (val: string) => void;
+  placeholder?: string;
+}
+
+const Input = ({ label, value, onChange, placeholder }: InputProps) => (
   <div className="space-y-1">
     <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">{label}</label>
     <input 
@@ -146,7 +185,7 @@ const Input = ({ label, value, onChange, placeholder }: any) => (
   </div>
 );
 
-const HandleCard = ({ type, username, icon }: { type: string, username: string, icon: any }) => {
+const HandleCard = ({ type, username, icon }: { type: string, username: string | undefined, icon: React.ReactNode }) => {
   const getUrl = () => {
     if (!username) return null;
     switch(type) {
