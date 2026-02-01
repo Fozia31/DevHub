@@ -1,7 +1,6 @@
 import { Request, Response } from 'express';
 import Task from '../models/Task';
 
-// 1. Get all tasks for the Admin table
 export const getTasks = async (req: Request, res: Response) => {
   try {
     const tasks = await Task.find().sort({ createdAt: -1 });
@@ -11,27 +10,30 @@ export const getTasks = async (req: Request, res: Response) => {
   }
 };
 
-// 2. Create a new task (Handles both links and file uploads)
 export const createTask = async (req: Request, res: Response) => {
   try {
     const taskData = { ...req.body };
-    const file = req.file as any; 
     
-    // If a file exists, Multer saved it to disk; use the filename as content
-    if (file) {
-      taskData.content = file.filename;
-    } 
-    // If no file, it uses 'content' sent from the frontend (the URL)
+    if (req.file) {
+      taskData.content = req.file.filename;
+    } else if (req.body.link) {
+      taskData.content = req.body.link;
+    }
+
+    if (!taskData.student || taskData.student === "" || taskData.student === "undefined") {
+      delete taskData.student;
+    }
 
     const newTask = new Task(taskData);
     await newTask.save();
+    
     res.status(201).json(newTask);
   } catch (error: any) {
+    console.error("Create Task Error:", error);
     res.status(400).json({ message: "Error creating task", error: error.message });
   }
 };
 
-// 3. Delete a task
 export const deleteTask = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
@@ -58,3 +60,37 @@ export const getTaskStats = async (req: Request, res: Response) => {
     res.status(500).json({ message: "Error fetching stats", error: error.message });
   }
 };
+
+
+export const updateTask = async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    const updateData = { ...req.body };
+    const file = req.file as any;
+
+    if (file) {
+      updateData.content = file.filename;
+    } else if (req.body.type === 'link') {
+      updateData.content = req.body.link;
+    } else {
+
+      delete updateData.content;
+    }
+
+    const updatedTask = await Task.findByIdAndUpdate(
+      id, 
+      updateData, 
+      { new: true, runValidators: true }
+    );
+
+    if (!updatedTask) {
+      return res.status(404).json({ message: "Task not found" });
+    }
+
+    res.status(200).json(updatedTask);
+  } catch (error: any) {
+    console.error("Update Error:", error);
+    res.status(400).json({ message: "Error updating task", error: error.message });
+  }
+};
+

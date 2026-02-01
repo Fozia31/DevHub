@@ -4,21 +4,21 @@ import React, { useState } from 'react';
 import { Mail, Lock, User, ArrowRight, Github, ShieldCheck } from 'lucide-react';
 import axios from 'axios';
 import { useRouter } from 'next/navigation';
-import Link from 'next/link'; // For redirection
+import Link from 'next/link'; 
 
 const RegisterForm = () => {
   const [formData, setFormData] = useState({
     name: '',
     email: '',
     password: '',
-    role: 'student' // Default role
+    role: 'student' 
   });
   const [error, setError] = useState('');
   const router = useRouter();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError(''); // Clear old errors before trying again
+    setError(''); 
     
     try {
       const response = await axios.post('http://localhost:5000/api/auth/register', formData, {
@@ -59,7 +59,6 @@ const RegisterForm = () => {
             </div>
           </div>
 
-          {/* Email Field */}
           <div>
             <label className="block text-sm font-semibold text-gray-700 mb-1">Email Address</label>
             <div className="relative">
@@ -73,7 +72,6 @@ const RegisterForm = () => {
             </div>
           </div>
 
-          {/* Password Field */}
           <div>
             <label className="block text-sm font-semibold text-gray-700 mb-1">Password</label>
             <div className="relative">
@@ -92,7 +90,6 @@ const RegisterForm = () => {
           </button>
         </form>
 
-        {/* REDIRECT TO LOGIN BUTTON */}
         <div className="mt-6 text-center text-sm text-gray-600">
           Already have an account?{' '}
           <Link href="/login" className="text-indigo-600 font-bold hover:underline">

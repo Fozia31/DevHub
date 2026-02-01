@@ -3,13 +3,15 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
-  Plus, Search, X, Loader2, FileText, Video, Link as LinkIcon, Calendar, Trash2, ExternalLink 
+  Plus, X, Loader2, FileText, Video, Link as LinkIcon, 
+  Calendar, Trash2, ExternalLink, Edit 
 } from 'lucide-react';
 
 const TaskManagement = () => {
   const [tasks, setTasks] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState('All Tasks');
   const [contentType, setContentType] = useState('link'); 
 
@@ -35,20 +37,44 @@ const TaskManagement = () => {
     }
   };
 
-  useEffect(() => { fetchTasks(); }, []);
+  useEffect(() => { 
+    fetchTasks(); 
+  }, []);
 
-  // --- HELPER TO OPEN CONTENT ---
   const handleOpenContent = (task: any) => {
-    // If it's a link, open directly. 
-    // If it's a file, point to the backend uploads folder
-    const url = task.type === 'link' 
+    let url = task.type === 'link' 
       ? task.content 
-      : `http://localhost:5000/uploads/tasks/${task.content}`;
+      : "http://localhost:5000/uploads/" + task.content;
     
+    if (task.type === 'link' && !url.startsWith('http')) {
+        url = 'https://' + url;
+    }
     window.open(url, '_blank', 'noopener,noreferrer');
   };
 
-  const handleAddTask = async (e: React.FormEvent) => {
+  const handleEditClick = (e: React.MouseEvent, task: any) => {
+    e.stopPropagation();
+    setEditingId(task._id);
+    setContentType(task.type);
+    setFormData({
+      title: task.title,
+      module: task.module,
+      status: task.status,
+      startDate: task.startDate ? task.startDate.split('T')[0] : '',
+      endDate: task.endDate ? task.endDate.split('T')[0] : '',
+      link: task.type === 'link' ? task.content : '',
+      file: null,
+    });
+    setShowModal(true);
+  };
+
+  const handleCloseModal = () => {
+    setShowModal(false);
+    setEditingId(null);
+    setFormData({ title: '', module: '', status: 'Active', startDate: '', endDate: '', link: '', file: null });
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
       const data = new FormData();
@@ -59,28 +85,34 @@ const TaskManagement = () => {
       data.append('endDate', formData.endDate);
       data.append('type', contentType);
       
+      // Corrected keys for backend consistency
       if (contentType === 'link') {
         data.append('content', formData.link);
       } else if (formData.file) {
         data.append('file', formData.file);
       }
 
-      await axios.post('http://localhost:5000/api/admin/tasks/add', data, { 
+      const config = { 
         withCredentials: true,
         headers: { 'Content-Type': 'multipart/form-data' }
-      });
+      };
 
-      setShowModal(false);
-      setFormData({ title: '', module: '', status: 'Active', startDate: '', endDate: '', link: '', file: null });
+      if (editingId) {
+        await axios.put(`http://localhost:5000/api/admin/tasks/${editingId}`, data, config);
+      } else {
+        await axios.post('http://localhost:5000/api/admin/tasks/add', data, config);
+      }
+
+      handleCloseModal();
       fetchTasks();
-    } catch (error) {
-      alert("Error adding task.");
+    } catch (error: any) {
+      alert(error.response?.data?.message || "Operation failed");
     }
   };
 
   const handleDelete = async (e: React.MouseEvent, id: string) => {
-    e.stopPropagation(); // Prevent the row click (opening link) when clicking delete
-    if (!window.confirm("Delete this task?")) return;
+    e.stopPropagation();
+    if (!window.confirm("Are you sure you want to delete this task?")) return;
     try {
       await axios.delete(`http://localhost:5000/api/admin/tasks/${id}`, { withCredentials: true });
       fetchTasks();
@@ -108,7 +140,7 @@ const TaskManagement = () => {
           <div className="flex justify-between items-center">
             <div>
               <h2 className="text-2xl font-black text-slate-900 tracking-tight">Curriculum Tasks</h2>
-              <p className="text-slate-500 font-medium text-sm">Click any task to view its content.</p>
+              <p className="text-slate-500 font-medium text-sm">Design and manage learning modules.</p>
             </div>
             <motion.button 
               whileHover={{ y: -2 }}
@@ -156,7 +188,7 @@ const TaskManagement = () => {
                       >
                         <td className="px-8 py-6">
                           <div className="font-bold text-slate-800 text-sm group-hover:text-indigo-600 flex items-center gap-2">
-                            {task.title} <ExternalLink size={12} className="opacity-0 group-hover:opacity-100 transition-opacity" />
+                            {task.title} <ExternalLink size={12} className="opacity-0 group-hover:opacity-100" />
                           </div>
                           <div className="text-slate-400 text-xs">{task.module}</div>
                         </td>
@@ -176,14 +208,11 @@ const TaskManagement = () => {
                            </span>
                         </td>
                         <td className="px-8 py-6 text-right">
-                          <div className="flex justify-end gap-3 items-center">
-                            <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wide ${task.status === 'Active' ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-500'}`}>
-                                {task.status}
-                            </span>
-                            <button 
-                              onClick={(e) => handleDelete(e, task._id)} 
-                              className="p-2 text-slate-300 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all"
-                            >
+                          <div className="flex justify-end gap-2 items-center">
+                            <button onClick={(e) => handleEditClick(e, task)} className="p-2 text-slate-300 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg">
+                              <Edit size={16}/>
+                            </button>
+                            <button onClick={(e) => handleDelete(e, task._id)} className="p-2 text-slate-300 hover:text-red-500 hover:bg-red-50 rounded-lg">
                               <Trash2 size={16}/>
                             </button>
                           </div>
@@ -198,18 +227,17 @@ const TaskManagement = () => {
         </div>
       </main>
 
-      {/* MODAL (Same as previous version) */}
       <AnimatePresence>
         {showModal && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setShowModal(false)} className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm" />
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={handleCloseModal} className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm" />
             <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="bg-white rounded-[2.5rem] w-full max-w-lg p-10 shadow-2xl relative z-10 max-h-[90vh] overflow-y-auto">
               <div className="flex justify-between items-start mb-6">
-                <h3 className="text-2xl font-black text-slate-900">Add New Task</h3>
-                <button onClick={() => setShowModal(false)} className="p-2 hover:bg-slate-100 rounded-full"><X size={20} className="text-slate-400" /></button>
+                <h3 className="text-2xl font-black text-slate-900">{editingId ? 'Edit Task' : 'Add New Task'}</h3>
+                <button onClick={handleCloseModal} className="p-2 hover:bg-slate-100 rounded-full"><X size={20} className="text-slate-400" /></button>
               </div>
 
-              <form onSubmit={handleAddTask} className="space-y-5">
+              <form onSubmit={handleSubmit} className="space-y-5">
                 <div className="space-y-1">
                   <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Task Title</label>
                   <input type="text" required className="w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl outline-none text-sm font-bold" value={formData.title} onChange={(e) => setFormData({...formData, title: e.target.value})} placeholder="e.g. Project Phase 1" />
@@ -230,7 +258,7 @@ const TaskManagement = () => {
                   <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Content Type</label>
                   <div className="grid grid-cols-3 gap-2">
                     {['link', 'video', 'pdf'].map((type) => (
-                      <button key={type} type="button" onClick={() => setContentType(type)} className={`capitalize p-3 rounded-xl border text-xs font-bold transition-all ${contentType === type ? 'bg-indigo-600 text-white' : 'bg-white text-slate-500'}`}>
+                      <button key={type} type="button" onClick={() => setContentType(type)} className={`capitalize p-3 rounded-xl border text-xs font-bold transition-all ${contentType === type ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-white text-slate-500 border-slate-100'}`}>
                         {type}
                       </button>
                     ))}
@@ -243,24 +271,32 @@ const TaskManagement = () => {
                     <input type="url" required className="w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl outline-none text-sm font-bold" value={formData.link} onChange={(e) => setFormData({...formData, link: e.target.value})} placeholder="https://..." />
                   ) : (
                     <div className="relative">
-                      <input type="file" required className="absolute inset-0 opacity-0 cursor-pointer z-10" onChange={(e) => setFormData({...formData, file: e.target.files ? e.target.files[0] : null})} />
+                      <input type="file" required={!editingId} className="absolute inset-0 opacity-0 cursor-pointer z-10" onChange={(e) => setFormData({...formData, file: e.target.files ? e.target.files[0] : null})} />
                       <div className="w-full p-6 border-2 border-dashed border-slate-200 rounded-2xl flex flex-col items-center gap-2">
                         <Plus className="text-slate-300" />
-                        <span className="text-xs font-bold text-slate-400">{formData.file ? formData.file.name : `Select ${contentType.toUpperCase()}`}</span>
+                        <span className="text-xs font-bold text-slate-400">{formData.file ? formData.file.name : editingId ? 'Leave empty to keep existing' : `Select ${contentType.toUpperCase()}`}</span>
                       </div>
                     </div>
                   )}
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
-                  <input type="text" placeholder="Module" required className="w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-bold" value={formData.module} onChange={(e) => setFormData({...formData, module: e.target.value})} />
-                  <select className="w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-bold" value={formData.status} onChange={(e) => setFormData({...formData, status: e.target.value})}>
-                    <option value="Active">Active</option>
-                    <option value="Draft">Draft</option>
-                  </select>
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Module</label>
+                    <input type="text" placeholder="Module" required className="w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-bold outline-none" value={formData.module} onChange={(e) => setFormData({...formData, module: e.target.value})} />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Status</label>
+                    <select className="w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-bold outline-none" value={formData.status} onChange={(e) => setFormData({...formData, status: e.target.value})}>
+                      <option value="Active">Active</option>
+                      <option value="Draft">Draft</option>
+                    </select>
+                  </div>
                 </div>
 
-                <button type="submit" className="w-full bg-indigo-600 text-white py-5 rounded-2xl font-black text-lg active:scale-95 transition-all">Publish Task</button>
+                <button type="submit" className="w-full bg-indigo-600 text-white py-5 rounded-2xl font-black text-lg active:scale-95 transition-all shadow-lg shadow-indigo-200">
+                  {editingId ? 'Update Task' : 'Publish Task'}
+                </button>
               </form>
             </motion.div>
           </div>

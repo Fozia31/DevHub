@@ -6,7 +6,6 @@ import { addResource, getAllResources } from '../../controllers/adminresource.co
 
 const router = express.Router();
 
-// Matches: GET /api/admin/dashboard
 router.get('/dashboard', protect, authorize('admin'), getAdminStats);
 router.get('/stats', protect, authorize('admin'), getAdminStats);
 router.post('/resources/add', protect, authorize('admin'), addResource);

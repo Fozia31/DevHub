@@ -1,7 +1,7 @@
 import express from 'express';
 import multer from 'multer';
 import fs from 'fs'; 
-import { createTask, getTasks, deleteTask, getTaskStats } from '../../controllers/admintask.controller';
+import { createTask, getTasks, deleteTask, getTaskStats, updateTask } from '../../controllers/admintask.controller';
 import { protect, authorize } from '../../middleware/auth.middleware';
 
 const router = express.Router();
@@ -26,7 +26,8 @@ router.use(protect, authorize('admin'));
 
 router.get('/', getTasks);
 router.get('/stats', getTaskStats);
-router.post('/add', upload.single('file'), createTask); // 'file' matches frontend key
+router.post('/add', upload.single('file'), createTask); 
+router.put('/:id', upload.single('file'), updateTask);
 router.delete('/:id', deleteTask);
 
 export default router;

@@ -5,7 +5,6 @@ interface AuthRequest extends Request {
   user?: { id: string; role: string; };
 }
 
-// 1. Fetch all resources for management view
 export const getAllResources = async (req: Request, res: Response) => {
   try {
     const resources = await Resource.find().sort({ createdAt: -1 });
@@ -15,13 +14,13 @@ export const getAllResources = async (req: Request, res: Response) => {
   }
 };
 
-// 2. Add a new resource
 export const addResource = async (req: AuthRequest, res: Response) => {
   try {
     const { title, description, type, url, category } = req.body;
-    
-    if (!req.user) {
-      return res.status(401).json({ error: "Unauthorized: No user session found" });
+    const userId = req.user?.id;
+
+    if (!userId) {
+      return res.status(401).json({ error: "Unauthorized: Please log in again" });
     }
 
     const resource = new Resource({
@@ -29,9 +28,9 @@ export const addResource = async (req: AuthRequest, res: Response) => {
       description,
       type,
       url,
-      category,
-      createdBy: req.user.id,
-      status: 'Not Started' // Default status for new resources
+      category: category || "General",
+      createdBy: userId,
+      status: 'Not Started'
     });
 
     const savedResource = await resource.save();
@@ -41,7 +40,27 @@ export const addResource = async (req: AuthRequest, res: Response) => {
   }
 };
 
-// 3. Delete a resource
+export const updateResource = async (req: AuthRequest, res: Response) => {
+  try {
+    const { id } = req.params;
+    const { title, description, type, url, category } = req.body;
+
+    const updatedResource = await Resource.findByIdAndUpdate(
+      id,
+      { title, description, type, url, category },
+      { new: true, runValidators: true } 
+    );
+
+    if (!updatedResource) {
+      return res.status(404).json({ error: "Resource not found" });
+    }
+
+    res.json(updatedResource);
+  } catch (error: any) {
+    res.status(400).json({ error: error.message || "Failed to update resource" });
+  }
+};
+
 export const deleteResource = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;

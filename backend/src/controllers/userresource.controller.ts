@@ -1,7 +1,6 @@
 import { Request, Response } from 'express';
 import Resource from '../models/Resource';
 
-// 1. Fetch all resources
 export const getResources = async (req: Request, res: Response) => {
   try {
     const resources = await Resource.find().sort({ createdAt: -1 });
@@ -11,7 +10,6 @@ export const getResources = async (req: Request, res: Response) => {
   }
 };
 
-// 2. Add new resource (Admin only)
 export const addResource = async (req: Request, res: Response) => {
   try {
     const userId = (req as any).user?.id;
@@ -24,7 +22,6 @@ export const addResource = async (req: Request, res: Response) => {
   }
 };
 
-// 3. Update status (Student interaction)
 export const updateResourceStatus = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;

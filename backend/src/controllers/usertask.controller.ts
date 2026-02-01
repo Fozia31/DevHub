@@ -1,7 +1,6 @@
 import { Request, Response } from 'express';
 import Task from '../models/Task';
 
-// GET /api/tasks/stats
 export const getTaskStats = async (req: Request, res: Response) => {
   try {
     const pending = await Task.countDocuments({ status: 'Draft' });
@@ -14,7 +13,6 @@ export const getTaskStats = async (req: Request, res: Response) => {
   }
 };
 
-// GET /api/tasks/student/tasks
 export const getStudentTasks = async (req: Request, res: Response) => {
   try {
     const tasks = await Task.find().sort({ endDate: 1 });
@@ -24,7 +22,6 @@ export const getStudentTasks = async (req: Request, res: Response) => {
   }
 };
 
-// Add this to your existing controller
 export const updateTaskStatus = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;

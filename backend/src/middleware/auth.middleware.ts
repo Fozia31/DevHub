@@ -10,7 +10,6 @@ interface AuthRequest extends Request {
 }
 
 export const protect = async (req: AuthRequest, res: Response, next: NextFunction) => {
-    // Note: Ensure you have 'cookie-parser' installed and used in server.ts
     const token = req.cookies?.token; 
 
     if (!token) {
@@ -18,7 +17,6 @@ export const protect = async (req: AuthRequest, res: Response, next: NextFunctio
     }
 
     try {
-        // Fix 1: Added 'role' to the decoded type cast
         const decoded = jwt.verify(token, process.env.JWT_SECRET as string) as { id: string, role: string };
         req.user = decoded;
         next();
@@ -29,7 +27,6 @@ export const protect = async (req: AuthRequest, res: Response, next: NextFunctio
 
 export const authorize = (...roles: string[]) => {
     return (req: AuthRequest, res: Response, next: NextFunction) => {
-        // Fix 2: Check if req.user exists before checking the role
         if (!req.user || !roles.includes(req.user.role)) {
             return res.status(403).json({ 
                 message: `User role ${req.user?.role || 'unknown'} is not authorized` 

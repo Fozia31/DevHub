@@ -3,7 +3,7 @@ import React from 'react';
 import { Mail, Lock, Eye, ArrowRight, Github } from 'lucide-react';
 import axios from 'axios';
 import { useRouter } from 'next/navigation';
-import Link from 'next/link'; // Import Link for navigation
+import Link from 'next/link'; 
 
 const LoginForm = () => {
     const [email, setEmail] = React.useState('');
@@ -110,10 +110,6 @@ const LoginForm = () => {
                     </p>
                 </div>
             </div>
-
-            {/* <p className="mt-8 text-sm text-gray-500">
-                Having trouble logging in? <span className="text-indigo-600 font-bold cursor-pointer">Contact Administrator</span>
-            </p> */}
         </div>
     );
 };

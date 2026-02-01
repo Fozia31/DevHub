@@ -3,7 +3,6 @@ import User from '../models/User';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 
-// --- REGISTER ---
 export const register = async (req: Request, res: Response) => {
   try {
     const { name, email, password, role, github, leetcode } = req.body;
@@ -37,7 +36,6 @@ export const register = async (req: Request, res: Response) => {
   }
 };
 
-// --- LOGIN ---
 export const login = async (req: Request, res: Response) => {
   try {
     const { email, password } = req.body;
@@ -74,16 +72,17 @@ export const login = async (req: Request, res: Response) => {
   }
 };
 
-// --- LOGOUT ---
-export const logout = async (req: Request, res: Response) => {
-  res.cookie('token', '', {
+export const logout = (req: Request, res: Response) => {
+  res.cookie("token", "", {
     httpOnly: true,
-    expires: new Date(0), // Instantly expires the cookie
+    expires: new Date(0), 
+    sameSite: 'lax',
+    secure: process.env.NODE_ENV === 'production'
   });
-  res.status(200).json({ message: 'Logged out successfully' });
+  
+  res.status(200).json({ message: "Logged out successfully" });
 };
 
-// --- GET PROFILE ---
 export const getProfile = async (req: any, res: Response) => {
   try {
     const userId = req.user.id || req.user._id;
@@ -100,9 +99,6 @@ export const getProfile = async (req: any, res: Response) => {
   }
 };
 
-// --- UPDATE PROFILE ---
-// backend/src/controllers/auth.controller.ts
-// backend/src/controllers/auth.controller.ts
 export const updateProfile = async (req: any, res: Response) => {
   try {
     const { name, title, github, leetcode, linkedin, telegram, codeforces } = req.body;
@@ -113,7 +109,7 @@ export const updateProfile = async (req: any, res: Response) => {
       { 
         $set: { 
           name, 
-          title, // Added this
+          title, 
           "codingHandles.github": github,
           "codingHandles.leetcode": leetcode,
           "codingHandles.linkedin": linkedin,

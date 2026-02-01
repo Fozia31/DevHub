@@ -2,23 +2,15 @@
 "use client";
 import Navbar from '@/components/Navbar';
 import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
-import Cookies from 'js-cookie';
 
 export default function StudentLayout({ children }: { children: React.ReactNode }) {
-  const router = useRouter();
-  const [isAuth, setIsAuth] = useState(false);
+  const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
-    const token = Cookies.get('token');
-    if (!token) {
-      router.replace('/login');
-    } else {
-      setIsAuth(true);
-    }
-  }, [router]);
+    setMounted(true);
+  }, []);
 
-  if (!isAuth) return null; // Prevents UI flicker while redirecting
+  if (!mounted) return null;
 
   return (
     <div className="min-h-screen bg-[#F8FAFC]">

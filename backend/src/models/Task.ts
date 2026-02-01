@@ -1,3 +1,4 @@
+// backend/src/models/Task.ts
 import mongoose from 'mongoose';
 
 const taskSchema = new mongoose.Schema({
@@ -9,15 +10,20 @@ const taskSchema = new mongoose.Schema({
      type: String,
     required: true
  },
+ student: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+    required: false
+  },
   status: { 
   type: String, 
-  enum: ['Active', 'Draft', 'Completed'], // Added 'Completed'
+  enum: ['Active', 'Draft', 'Completed'], 
   default: 'Active' 
 },
   startDate: { type: Date, required: true },
   endDate: { type: Date, required: true },
   type: { type: String, enum: ['link', 'video', 'pdf'], default: 'link' },
-  content: String, // URL or File path
+  content: String, 
   difficulty: { type: String, enum: ['Easy', 'Medium', 'Hard'], default: 'Medium' }
 }, { timestamps: true });
 

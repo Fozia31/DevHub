@@ -7,9 +7,9 @@ export interface IResource extends Document {
   type: 'video' | 'pdf' | 'link';
   url: string;
   category: string;
-  status: 'Not Started' | 'In-Progress' | 'Done' | 'Need-Help'; // Added this
-  createdBy: mongoose.Types.ObjectId; // Interface expects ObjectId
-  metadata?: { // Add this if you want to use it
+  status: 'Not Started' | 'In-Progress' | 'Done' | 'Need-Help'; 
+  createdBy: mongoose.Types.ObjectId;
+  metadata?: { 
     duration?: string;
     size?: string;
   };

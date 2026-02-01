@@ -37,6 +37,5 @@ const UserSchema = new Schema({
   },
 }, { timestamps: true });
 
-// Export the model so other files can use it
 const User = mongoose.model('User', UserSchema);
 export default User;

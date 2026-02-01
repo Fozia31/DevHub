@@ -1,61 +1,67 @@
+// backend/src/controllers/admin.controller.ts
 import { Request, Response } from 'express';
 import User from '../models/User';
 import Task from '../models/Task';
+import Resource from '../models/Resource';
+
+
+const formatTimeAgo = (date: any) => {
+  if (!date) return 'Just now';
+  const now = new Date();
+  const past = new Date(date);
+  const seconds = Math.floor((now.getTime() - past.getTime()) / 1000);
+
+  if (seconds < 60) return 'Just now';
+  
+  const minutes = Math.floor(seconds / 60);
+  if (minutes < 60) return `${minutes}m ago`;
+  
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${hours}h ago`;
+  
+  const days = Math.floor(hours / 24);
+  if (days < 7) return `${days}d ago`;
+  
+  return past.toLocaleDateString();
+};
 
 export const getAdminStats = async (req: Request, res: Response) => {
   try {
-    // 1. Get total students count (Card 1)
-    const userCount = await User.countDocuments({ role: 'student' });
+    const [userCount, pendingTasksCount, resourceCount, recentTasks] = await Promise.all([
+      User.countDocuments({ role: 'student' }),
+      Task.countDocuments({ status: 'Draft' }),
+      Resource.countDocuments(),
+      Task.find()
+        .sort({ updatedAt: -1 })
+        .limit(5)
+        .populate('student', 'name') 
+        .lean()
+    ]);
 
-    // 2. Get Pending/Draft tasks count (Card 2)
-    const pendingTasksCount = await Task.countDocuments({ status: 'Draft' });
+    
+    const recentActivity = (recentTasks || []).map((task: any) => {
+      const statusMap: Record<string, string> = {
+        'Draft': 'Submitted',
+        'Active': 'Reviewing',
+        'Completed': 'Completed'
+      };
 
-    // 3. Get Resources Assigned (Card 3)
-    // We count unique titles or specific resource-type tasks
-    const resourceCount = await Task.distinct('title').then(titles => titles.length);
-
-    // 4. Get recent student activity (Table)
-    const recentTasksRaw = await Task.find()
-      .populate('createdBy', 'name') // Assuming createdBy links to the user
-      .sort({ updatedAt: -1 }) // Sort by latest update
-      .limit(5);
-
-    // 5. Format activity for the UI
-    const recentActivity = recentTasksRaw.map((task: any) => {
-      // Helper for "Time Ago"
-      const timeAgo = formatTimeAgo(task.updatedAt);
-      
       return {
-        studentName: task.createdBy?.name || 'Unknown User',
-        taskName: task.title,
-        // Mapping backend status to UI badges
-        status: task.status === 'Draft' ? 'Submitted' : 
-                task.status === 'Active' ? 'Reviewing' : 'Completed',
-        lastUpdated: timeAgo,
+        studentName: task.student?.name || 'Unknown Student', 
+        taskName: task.title || 'Untitled Task',
+        status: statusMap[task.status] || 'Active',
+        lastUpdated: formatTimeAgo(task.updatedAt),
       };
     });
 
-    res.json({
+    res.status(200).json({
       userCount,
       pendingTasksCount,
       resourceCount,
       recentActivity
     });
   } catch (error: any) {
-    res.status(500).json({ 
-      message: "Error fetching dashboard stats", 
-      error: error.message 
-    });
+    console.error("Admin Stats Error:", error);
+    res.status(500).json({ message: "Internal Server Error", error: error.message });
   }
-};
-
-// Helper function to format date to "2 mins ago" etc.
-const formatTimeAgo = (date: Date) => {
-  const seconds = Math.floor((new Date().getTime() - new Date(date).getTime()) / 1000);
-  if (seconds < 60) return 'Just now';
-  const minutes = Math.floor(seconds / 60);
-  if (minutes < 60) return `${minutes} mins ago`;
-  const hours = Math.floor(minutes / 60);
-  if (hours < 24) return `${hours} hours ago`;
-  return new Date(date).toLocaleDateString();
 };
