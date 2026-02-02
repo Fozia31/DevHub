@@ -1,3 +1,4 @@
+// frontend/components/student/StudentDashboard.tsx
 "use client";
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';

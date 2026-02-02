@@ -6,7 +6,6 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import { dirname } from 'path';
 
-
 import connectDB from './config/db.js'; 
 import authRoutes from './routes/v1/auth.routes.js';
 import taskRoutes from './routes/v1/task.routes.js';
@@ -14,28 +13,41 @@ import adminRoutes from './routes/v1/admin.routes.js';
 import resourceRoutes from './routes/v1/resource.routes.js';
 import adminTaskRoutes from './routes/v1/admin.task.routes.js';
 
-
 import Task from './models/Task.js';
 import User from './models/User.js';
 
 dotenv.config();
 const app = express();
 
-
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
 connectDB();
 
+// --- THE CORRECT CORS CONFIGURATION ---
+// backend/server.ts
+
+const allowedOrigins = [
+  'https://dev-hub-lac-ten.vercel.app', // Your live site
+  'http://localhost:3000',               // Your local machine
+  'http://127.0.0.1:3000'               // Alternative local address
+];
+
 app.use(cors({
-  origin: process.env.NODE_ENV === 'production' 
-    ? process.env.FRONTEND_URL 
-    : 'http://localhost:3000',
-  credentials: true,
+  origin: function (origin, callback) {
+    // Allow requests with no origin (like mobile apps or Postman)
+    if (!origin) return callback(null, true);
+    
+    if (allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
+  credentials: true, // MUST be true to allow the 401 to become a 200
   methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
   allowedHeaders: ['Content-Type', 'Authorization']
 }));
-
 app.use('/uploads', express.static(path.join(__dirname, 'uploads'))); 
 app.use(cookieParser());
 app.use(express.json());
@@ -66,9 +78,11 @@ const runMigration = async () => {
 };
 
 const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => {
+app.listen(PORT, async () => { // Added async
     console.log(`🚀 Server running on port ${PORT}`);
+    
+    // Ensure DB is connected before running migration
     if (process.env.NODE_ENV === 'production') {
-      runMigration();
+       await runMigration(); 
     }
 });

@@ -11,7 +11,6 @@ const LoginForm = () => {
     const [error, setError] = React.useState('');
     const router = useRouter();
 
-    // DYNAMIC URL: Uses Render in production, Localhost in development
     const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
 
     const handleLogin = async (e: React.FormEvent) => {
@@ -19,7 +18,6 @@ const LoginForm = () => {
         setError('');
 
         try {
-            // FIXED: Replaced hardcoded localhost with API_BASE
             const response = await axios.post(`${API_BASE}/auth/login`,
                 { email, password },
                 { withCredentials: true }

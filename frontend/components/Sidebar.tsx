@@ -1,24 +1,29 @@
+// frontend/components/Sidebar.tsx
 "use client";
 import React from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { 
-  LayoutDashboard, Users, CheckSquare, 
-  Library, BarChart3, Settings, LogOut, 
-  User
+  LayoutDashboard, CheckSquare, 
+  Library, LogOut
 } from 'lucide-react';
 import axios from 'axios';
 
 const Sidebar = ({ role = "admin" }) => {
   const pathname = usePathname();
 
+  // 1. Get the correct URL from Environment Variables
+  const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
+
   const handleLogout = async () => {
     try {
-      await axios.post('http://localhost:5000/api/auth/logout', {}, { withCredentials: true });
+      // 2. Use the dynamic API_BASE instead of localhost
+      await axios.post(`${API_BASE}/auth/logout`, {}, { withCredentials: true });
       window.location.href = '/login';
     } catch (err) {
       console.error("Logout failed", err);
-        window.location.href = '/login';
+      // Fallback: force redirect even if the server call fails
+      window.location.href = '/login';
     }
   };
 
@@ -63,8 +68,7 @@ const Sidebar = ({ role = "admin" }) => {
         })}
       </nav>
 
-
-      <div className="p-4 border-t border-slate-50 space-y-2">        
+      <div className="p-4 border-t border-slate-50 space-y-2">
         <button 
           onClick={handleLogout}
           className="flex items-center gap-4 px-4 py-3 w-full rounded-xl font-bold text-sm text-red-400 hover:bg-red-50 transition-all"

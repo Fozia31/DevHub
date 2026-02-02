@@ -1,3 +1,4 @@
+// frontend/components/Navbar.tsx
 "use client";
 import React from 'react';
 import Link from 'next/link';
@@ -14,7 +15,7 @@ const Navbar = () => {
   const navItems = [
     { name: 'Dashboard', href: '/student/dashboard', icon: <LayoutDashboard size={18} /> },
     { name: 'Tasks', href: '/student/tasks', icon: <CheckSquare size={18} /> },
-    { name: 'Resources', href: '/student/resource', icon: <BookOpen size={18} /> },
+    { name: 'Resources', href: '/student/resources', icon: <BookOpen size={18} /> },
     { name: 'Profile', href: '/student/profile', icon: <User size={18} /> },
   ];
 

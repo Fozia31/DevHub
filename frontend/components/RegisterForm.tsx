@@ -16,7 +16,6 @@ const Sidebar = ({ role = "admin" }) => {
 
   const handleLogout = async () => {
     try {
-      // FIXED: Replaced hardcoded localhost with API_BASE
       await axios.post(`${API_BASE}/auth/logout`, {}, { withCredentials: true });
       
       // Hard reset to clear any lingering state

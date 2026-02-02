@@ -3,6 +3,9 @@ import User from '../models/User';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 
+// Helper to determine if we are in production
+const isProduction = process.env.NODE_ENV === 'production';
+
 export const register = async (req: Request, res: Response) => {
   try {
     const { name, email, password, role, github, leetcode } = req.body;
@@ -56,10 +59,11 @@ export const login = async (req: Request, res: Response) => {
       { expiresIn: '1d' }
     );
 
+    // --- UPDATED DYNAMIC COOKIE LOGIC ---
     res.cookie('token', token, {
       httpOnly: true,
-      secure: true, 
-      sameSite: 'none',
+      secure: isProduction,           // true on Render, false on Localhost
+      sameSite: isProduction ? 'none' : 'lax', // 'none' for Vercel->Render cross-site
       maxAge: 24 * 60 * 60 * 1000 
     });
 
@@ -73,11 +77,12 @@ export const login = async (req: Request, res: Response) => {
 };
 
 export const logout = (req: Request, res: Response) => {
+  // Clear cookie with same attributes used during login
   res.cookie("token", "", {
     httpOnly: true,
     expires: new Date(0), 
-    sameSite: 'none',
-    secure: true
+    sameSite: isProduction ? 'none' : 'lax',
+    secure: isProduction
   });
   
   res.status(200).json({ message: "Logged out successfully" });
@@ -85,9 +90,10 @@ export const logout = (req: Request, res: Response) => {
 
 export const getProfile = async (req: any, res: Response) => {
   try {
-    const userId = req.user.id || req.user._id;
+    const userId = req.user?.id || req.user?._id;
+    if (!userId) return res.status(401).json({ message: "Not authorized" });
+
     const user = await User.findById(userId).select('-password');
-    
     if (!user) {
       return res.status(404).json({ message: "User not found" });
     }
@@ -102,7 +108,7 @@ export const getProfile = async (req: any, res: Response) => {
 export const updateProfile = async (req: any, res: Response) => {
   try {
     const { name, title, github, leetcode, linkedin, telegram, codeforces } = req.body;
-    const userId = req.user.id || req.user._id;
+    const userId = req.user?.id || req.user?._id;
 
     const updatedUser = await User.findByIdAndUpdate(
       userId,
