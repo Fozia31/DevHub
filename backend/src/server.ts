@@ -26,63 +26,20 @@ const __dirname = dirname(__filename);
 app.use(cookieParser());
 app.use(express.json());
 
-// ========== CORS CONFIGURATION ==========
+// ========== SIMPLE CORS CONFIGURATION ==========
 const allowedOrigins = [
   'https://dev-hub-lac-ten.vercel.app', 
   'http://localhost:3000',               
   'http://127.0.0.1:3000'               
 ];
 
-// Configure CORS middleware
-const corsOptions = {
-  origin: function (origin, callback) {
-    // Allow requests with no origin (like mobile apps or curl)
-    if (!origin) return callback(null, true);
-    
-    if (allowedOrigins.includes(origin)) {
-      callback(null, true);
-    } else {
-      console.error(`CORS Error: Origin ${origin} not allowed`);
-      callback(new Error('Not allowed by CORS'));
-    }
-  },
+app.use(cors({
+  origin: allowedOrigins,
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-  allowedHeaders: [
-    'Content-Type', 
-    'Authorization', 
-    'Set-Cookie', 
-    'Cookie',
-    'X-Requested-With',
-    'Accept'
-  ],
-  exposedHeaders: [
-    'Set-Cookie',
-    'Authorization',
-    'Content-Length'
-  ],
-  maxAge: 86400 // 24 hours in seconds
-};
-
-// Apply CORS to all routes
-app.use(cors(corsOptions));
-
-// ========== FIXED: Handle pre-flight requests ==========
-app.options('*', (req, res) => {
-  const origin = req.headers.origin;
-  
-  // Check if origin is allowed
-  if (origin && allowedOrigins.includes(origin)) {
-    res.setHeader('Access-Control-Allow-Origin', origin);
-  }
-  
-  res.setHeader('Access-Control-Allow-Credentials', 'true');
-  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, PATCH, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, Set-Cookie, Cookie, X-Requested-With, Accept');
-  res.setHeader('Access-Control-Max-Age', '86400');
-  
-  res.sendStatus(200);
-});
+  allowedHeaders: ['Content-Type', 'Authorization', 'Set-Cookie', 'Cookie'],
+  exposedHeaders: ['Set-Cookie']
+}));
 
 // ========== STATIC FILES ==========
 app.use('/uploads', express.static(path.join(__dirname, 'uploads'))); 
