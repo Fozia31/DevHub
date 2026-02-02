@@ -28,7 +28,8 @@ const Navbar = () => {
       await axios.post(logoutUrl, {}, { withCredentials: true });
       
       // Clear localStorage if you store user data there
-      localStorage.removeItem('user'); 
+      localStorage.removeItem('user');
+      localStorage.removeItem('auth_token');
       
       window.location.href = '/login'; 
     } catch (err) {

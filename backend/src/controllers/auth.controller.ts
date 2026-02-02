@@ -150,7 +150,8 @@ export const login = async (req: Request, res: Response): Promise<void> => {
                 role: user.role,
                 email: user.email 
             },
-            token: process.env.NODE_ENV === 'development' ? token : undefined,
+            // Return token in response so frontend can also store it in localStorage
+            token,
             cookieSet: true
         });
     } catch (error: any) {

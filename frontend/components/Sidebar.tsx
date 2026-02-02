@@ -22,6 +22,9 @@ const Sidebar = ({ role = "admin" }) => {
       const logoutUrl = `${API_BASE}/api/auth/logout`;
       console.debug('Logout URL:', logoutUrl);
       await axios.post(logoutUrl, {}, { withCredentials: true });
+      // Clear local storage keys
+      localStorage.removeItem('user');
+      localStorage.removeItem('auth_token');
       window.location.href = '/login';
     } catch (err) {
       console.error("Logout failed", err);
