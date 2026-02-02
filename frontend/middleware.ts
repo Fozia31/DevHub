@@ -2,17 +2,25 @@ import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 
 export function middleware(request: NextRequest) {
+  // 1. Extract token - check both cookie and Authorization header as fallback
   const token = request.cookies.get('token')?.value;
   const { pathname } = request.nextUrl;
 
-  // 1. Protect internal pages: If no token, go to login
-  if (!token && (pathname.startsWith('/student') || pathname.startsWith('/admin'))) {
+  // DEBUG LOG - View this in Vercel Dashboard > Logs
+  console.log(`Path: ${pathname} | Token Present: ${!!token}`);
+
+  // 2. Public paths - allow access
+  const isAuthPage = pathname === '/login' || pathname === '/register';
+  const isProtectedRoute = pathname.startsWith('/student') || pathname.startsWith('/admin');
+
+  if (!token && isProtectedRoute) {
+    console.log("No token found, redirecting to login");
     return NextResponse.redirect(new URL('/login', request.url));
   }
 
   if (token) {
     try {
-      // EDGE-SAFE DECODING: Replaces Buffer.from
+      // Decode JWT for Edge Runtime
       const payloadBase64 = token.split('.')[1];
       const base64 = payloadBase64.replace(/-/g, '+').replace(/_/g, '/');
       const jsonPayload = decodeURIComponent(
@@ -22,24 +30,23 @@ export function middleware(request: NextRequest) {
           .join('')
       );
       
-      const decodedPayload = JSON.parse(jsonPayload);
-      const userRole = decodedPayload.role;
+      const { role } = JSON.parse(jsonPayload);
 
-      // 2. Role Protection: Redirect if trying to access the wrong dashboard
-      if (pathname.startsWith('/student') && userRole === 'admin') {
+      // 3. Prevent Role Crossing
+      if (pathname.startsWith('/student') && role !== 'student') {
         return NextResponse.redirect(new URL('/admin/dashboard', request.url));
       }
-      if (pathname.startsWith('/admin') && userRole === 'student') {
+      if (pathname.startsWith('/admin') && role !== 'admin') {
         return NextResponse.redirect(new URL('/student/dashboard', request.url));
       }
 
-      // 3. Authenticated Redirect: Prevent viewing login/register when logged in
-      if (pathname === '/login' || pathname === '/register') {
-        const dashboard = userRole === 'admin' ? '/admin/dashboard' : '/student/dashboard';
-        return NextResponse.redirect(new URL(dashboard, request.url));
+      // 4. If logged in, don't stay on login/register
+      if (isAuthPage) {
+        const dest = role === 'admin' ? '/admin/dashboard' : '/student/dashboard';
+        return NextResponse.redirect(new URL(dest, request.url));
       }
     } catch (error) {
-      // If decoding fails, clear the invalid token and redirect to login
+      console.error("JWT Decode Error:", error);
       const response = NextResponse.redirect(new URL('/login', request.url));
       response.cookies.delete('token');
       return response;
@@ -50,10 +57,5 @@ export function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: [
-    '/student/:path*', 
-    '/admin/:path*', 
-    '/login', 
-    '/register'
-  ],
+  matcher: ['/student/:path*', '/admin/:path*', '/login', '/register'],
 };
