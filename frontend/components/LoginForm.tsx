@@ -1,16 +1,12 @@
 'use client';
 import React, { useState } from 'react';
 import { Mail, Lock, Eye, ArrowRight, Loader2 } from 'lucide-react';
-import axios from 'axios';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
 
 const LoginForm = () => {
-    console.log('Login Page - API URL:', API_BASE);
-    console.log('Full login endpoint:', `${API_BASE}/api/auth/login`);
-
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [error, setError] = useState('');
@@ -18,87 +14,53 @@ const LoginForm = () => {
     const [showPassword, setShowPassword] = useState(false);
     const router = useRouter();
 
-    const handleLogin = async (e: React.FormEvent) => {
+    const handleLogin = async (e: React.MouseEvent) => {
         e.preventDefault();
-        e.stopPropagation();
+        console.log('Login button clicked!');
+        
+        if (!email || !password) {
+            setError('Please enter email and password');
+            return;
+        }
+        
         setError('');
         setIsLoading(true);
 
-        console.log('Attempting login with:', { email, password });
-        console.log('Calling endpoint:', `${API_BASE}/api/auth/login`);
+        console.log('Sending to:', `${API_BASE}/api/auth/login`);
 
         try {
-            const response = await axios.post(
-                `${API_BASE}/api/auth/login`,
-                { email, password },
-                { 
-                    withCredentials: true,
-                    headers: {
-                        'Content-Type': 'application/json',
-                    }
+            const response = await fetch(`${API_BASE}/api/auth/login`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                credentials: 'include',
+                body: JSON.stringify({ email, password })
+            });
+
+            console.log('Response status:', response.status);
+            
+            const data = await response.json();
+            console.log('Response data:', data);
+            
+            if (response.ok) {
+                console.log('Login successful!');
+                const role = data.user?.role || 'student';
+                
+                // Redirect based on role
+                if (role === 'admin') {
+                    window.location.href = '/admin/dashboard';
+                } else {
+                    window.location.href = '/student/dashboard';
                 }
-            );
-            
-            console.log('Login response status:', response.status);
-            console.log('Login response data:', response.data);
-            
-            if (response.status === 200) {
-                const role = response.data.user?.role || response.data.role || 'student';
-                console.log('User role:', role);
-                
-                const target = role === 'admin' ? '/admin/dashboard' : '/student/dashboard';
-                console.log('Redirecting to:', target);
-                
-                // Wait a moment to ensure cookie is set
-                setTimeout(() => {
-                    window.location.href = target;
-                }, 100);
+            } else {
+                setError(data.message || 'Login failed');
+                setIsLoading(false);
             }
         } catch (err: any) {
-            console.error('Login error details:', {
-                message: err.message,
-                response: err.response?.data,
-                status: err.response?.status,
-                headers: err.response?.headers
-            });
-            
+            console.error('Login error:', err);
+            setError('Network error. Please try again.');
             setIsLoading(false);
-            
-            if (err.response) {
-                // Server responded with error
-                switch (err.response.status) {
-                    case 401:
-                        setError('Invalid email or password');
-                        break;
-                    case 404:
-                        setError(`Login endpoint not found. Check if backend is running at: ${API_BASE}`);
-                        break;
-                    case 500:
-                        setError('Server error. Please try again later.');
-                        break;
-                    default:
-                        setError(err.response?.data?.message || `Error: ${err.response.status}`);
-                }
-            } else if (err.request) {
-                // Request made but no response
-                setError('Network error. Please check: 1) Backend is running, 2) No CORS issues');
-            } else {
-                // Other errors
-                setError('Login failed. Please try again.');
-            }
-        }
-    }
-
-    // Test backend connection
-    const testBackend = async () => {
-        try {
-            console.log('Testing backend connection...');
-            const response = await axios.get(`${API_BASE}/health`);
-            console.log('Backend health check:', response.data);
-            alert(`Backend is healthy: ${response.data}`);
-        } catch (err) {
-            console.error('Backend test failed:', err);
-            alert(`Backend test failed. Check if ${API_BASE} is accessible.`);
         }
     };
 
@@ -124,27 +86,11 @@ const LoginForm = () => {
 
                 {error && (
                     <div className="mb-4 p-3 bg-red-50 text-red-600 text-sm rounded-lg border border-red-100">
-                        <div className="font-semibold">Login Error</div>
-                        <div>{error}</div>
+                        {error}
                     </div>
                 )}
 
-                {/* Debug Info - Only show in development */}
-                {process.env.NODE_ENV === 'development' && (
-                    <div className="mb-4 p-3 bg-blue-50 text-blue-600 text-sm rounded-lg border border-blue-100">
-                        <div className="font-semibold">Debug Info</div>
-                        <div>API Base: {API_BASE}</div>
-                        <div>Full Endpoint: {API_BASE}/api/auth/login</div>
-                        <button 
-                            onClick={testBackend}
-                            className="mt-2 text-xs bg-blue-100 hover:bg-blue-200 px-2 py-1 rounded"
-                        >
-                            Test Backend Connection
-                        </button>
-                    </div>
-                )}
-
-                <form className="space-y-6" onSubmit={handleLogin}>
+                <div className="space-y-6">
                     <div>
                         <label className="block text-sm font-semibold text-gray-700 mb-2">Email Address</label>
                         <div className="relative">
@@ -189,7 +135,8 @@ const LoginForm = () => {
                     </div>
 
                     <button
-                        type="submit"
+                        type="button"
+                        onClick={handleLogin}
                         disabled={isLoading}
                         className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-4 rounded-xl flex items-center justify-center gap-2 transition-all shadow-lg disabled:opacity-70 disabled:cursor-not-allowed"
                     >
@@ -205,7 +152,7 @@ const LoginForm = () => {
                             </>
                         )}
                     </button>
-                </form>
+                </div>
 
                 <div className="pt-6 border-t border-gray-100 text-center mt-6">
                     <p className="text-sm text-gray-600">
@@ -216,11 +163,15 @@ const LoginForm = () => {
                     </p>
                 </div>
 
-                {/* Quick test credentials hint */}
                 <div className="mt-4 p-3 bg-gray-50 rounded-lg text-xs text-gray-500">
-                    <div className="font-semibold mb-1">For testing:</div>
-                    <div>Email: test@gmail.com</div>
-                    <div>Password: password123</div>
+                    <div className="font-semibold mb-1">Debug Info:</div>
+                    <div>Backend URL: {API_BASE}</div>
+                    <button 
+                        onClick={() => console.log('Test click')}
+                        className="mt-1 px-2 py-1 bg-blue-100 text-blue-600 rounded text-xs"
+                    >
+                        Click to test
+                    </button>
                 </div>
             </div>
         </div>
