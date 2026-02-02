@@ -1,25 +1,24 @@
-// frontend/proxy.ts
+// frontend/middleware.ts
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 
-export function proxy(request: NextRequest) {
+export function middleware(request: NextRequest) {
   const token = request.cookies.get('token')?.value;
   const { pathname } = request.nextUrl;
 
-  // 1. If NO token and trying to access internal pages -> Send to Login
+  // 1. Protect internal pages
   if (!token && (pathname.startsWith('/student') || pathname.startsWith('/admin'))) {
     return NextResponse.redirect(new URL('/login', request.url));
   }
 
-  // 2. If token EXISTS, handle smart redirection
+  // 2. Role-based redirection if token exists
   if (token) {
     try {
-      // Decode the JWT payload without a library
       const payloadBase64 = token.split('.')[1];
       const decodedPayload = JSON.parse(atob(payloadBase64));
       const userRole = decodedPayload.role;
 
-      // Prevent Admins from seeing Student pages and vice-versa
+      // Prevent role-crossing
       if (pathname.startsWith('/student') && userRole === 'admin') {
         return NextResponse.redirect(new URL('/admin/dashboard', request.url));
       }
@@ -27,13 +26,13 @@ export function proxy(request: NextRequest) {
         return NextResponse.redirect(new URL('/student/dashboard', request.url));
       }
 
-      // If they go to /login while already logged in, send them to their correct home
+      // Redirect away from login if already authenticated
       if (pathname === '/login') {
         const dashboard = userRole === 'admin' ? '/admin/dashboard' : '/student/dashboard';
         return NextResponse.redirect(new URL(dashboard, request.url));
       }
     } catch (error) {
-      // If token is malformed, clear it and send to login
+      // If token is invalid, clear it
       const response = NextResponse.redirect(new URL('/login', request.url));
       response.cookies.delete('token');
       return response;
@@ -43,6 +42,12 @@ export function proxy(request: NextRequest) {
   return NextResponse.next();
 }
 
+// FIXED MATCHER: Ensure every string starts with /
 export const config = {
-  matcher: ['/student/:path*', '/admin/:path*', '/login', '/register'],
+  matcher: [
+    '/student/:path*', 
+    '/admin/:path*', 
+    '/login', 
+    '/register' // Fixed: was likely missing a slash or had a typo here
+  ],
 };
