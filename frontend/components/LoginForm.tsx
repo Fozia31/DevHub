@@ -34,9 +34,37 @@ const LoginForm = () => {
                         localStorage.setItem('auth_token', data.token);
                         localStorage.setItem('user', JSON.stringify(data.user));
                     }
-                    
-                    const role = data.user?.role || 'student';
-                    window.location.href = role === 'admin' ? '/admin/dashboard' : '/student/dashboard';
+
+                    // Before redirecting, verify the server accepted the cookie by
+                    // calling a protected endpoint with credentials included. This
+                    // avoids redirecting when deployed backends reject Set-Cookie.
+                    const verifyAuth = async (retries = 3, delay = 500) => {
+                        const role = data.user?.role || 'student';
+                        const target = role === 'admin' ? '/admin/dashboard' : '/student/dashboard';
+
+                        for (let i = 0; i < retries; i++) {
+                            try {
+                                const verifyResp = await fetch(`${API_BASE}/api/auth/profile`, {
+                                    method: 'GET',
+                                    credentials: 'include'
+                                });
+                                if (verifyResp.ok) {
+                                    window.location.href = target;
+                                    return;
+                                }
+                            } catch (e) {
+                                // ignore and retry
+                            }
+                            await new Promise(r => setTimeout(r, delay));
+                        }
+
+                        // If verification failed, show an error so the user knows
+                        // the login didn't persist server-side. Keep them on page.
+                        setError('Login succeeded but auth cookie was not set by the server. Check CORS/cookie settings.');
+                        setIsLoading(false);
+                    };
+
+                    verifyAuth();
                 }
             } else {
                 setError(data.message || 'Login failed');
