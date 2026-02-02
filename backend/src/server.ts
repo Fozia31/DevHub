@@ -22,20 +22,18 @@ const app = express();
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
+app.use(cookieParser());
+app.use(express.json());
 connectDB();
 
-// --- THE CORRECT CORS CONFIGURATION ---
-// backend/server.ts
-
 const allowedOrigins = [
-  'https://dev-hub-lac-ten.vercel.app', // Your live site
-  'http://localhost:3000',               // Your local machine
-  'http://127.0.0.1:3000'               // Alternative local address
+  'https://dev-hub-lac-ten.vercel.app', 
+  'http://localhost:3000',               
+  'http://127.0.0.1:3000'               
 ];
 
 app.use(cors({
   origin: function (origin, callback) {
-    // Allow requests with no origin (like mobile apps or Postman)
     if (!origin) return callback(null, true);
     
     if (allowedOrigins.includes(origin)) {
@@ -49,8 +47,6 @@ app.use(cors({
   allowedHeaders: ['Content-Type', 'Authorization']
 }));
 app.use('/uploads', express.static(path.join(__dirname, 'uploads'))); 
-app.use(cookieParser());
-app.use(express.json());
 
 app.use('/api/auth', authRoutes);
 app.use('/api/tasks', taskRoutes);
