@@ -67,9 +67,9 @@ const ResourceManagement = () => {
     try {
       const config = { withCredentials: true };
       if (editingId) {
-        await axios.put(`${API_BASE}/api/resources/${editingId}`, formData, config);
+        await axios.put(`${API_BASE}/api/admin/resources/${editingId}`, formData, config);
       } else {
-        await axios.post(`${API_BASE}/api/resources/add`, formData, config);
+        await axios.post(`${API_BASE}/api/admin/resources/add`, formData, config);
       }
       closeModal();
       fetchResources();

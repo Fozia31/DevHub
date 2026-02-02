@@ -9,8 +9,9 @@ import axios from 'axios';
 const Navbar = () => {
   const pathname = usePathname();
 
-  // GET THE CORRECT URL FROM ENV
-  const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
+  // Build the API base URL robustly (accept env with or without trailing `/api`)
+  const rawApi = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+  const API_BASE = rawApi.replace(/\/$/, '');
 
   const navItems = [
     { name: 'Dashboard', href: '/student/dashboard', icon: <LayoutDashboard size={18} /> },
@@ -22,7 +23,9 @@ const Navbar = () => {
   const handleLogout = async () => {
     try {
       // DYNAMIC URL: Uses Render in prod, localhost in dev
-      await axios.post(`${API_BASE}/auth/logout`, {}, { withCredentials: true });
+      const logoutUrl = `${API_BASE}/api/auth/logout`;
+      console.debug('Logout URL:', logoutUrl);
+      await axios.post(logoutUrl, {}, { withCredentials: true });
       
       // Clear localStorage if you store user data there
       localStorage.removeItem('user'); 

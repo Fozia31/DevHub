@@ -149,7 +149,7 @@ export const login = async (req: Request, res: Response): Promise<void> => {
         console.error('Login error:', error);
         res.status(500).json({ 
             message: 'Server error during login',
-            error: process.env.NODE_ENV === 'development' ? error.message : undefined
+            error: process.env.NODE_ENV === 'production' ? error.message : undefined
         });
     }
 };

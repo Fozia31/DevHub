@@ -28,7 +28,7 @@ const StudentResources = () => {
   const fetchResources = async () => {
     try {
       setLoading(true);
-      const response = await axios.get(`${API_BASE}/resources`, { withCredentials: true });
+      const response = await axios.get(`${API_BASE}/api/resources`, { withCredentials: true });
       setResources(Array.isArray(response.data) ? response.data : []);
     } catch (error) {
       console.error("Error fetching resources:", error);

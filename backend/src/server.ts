@@ -1,91 +1,66 @@
-import express from "express";
-import cookieParser from "cookie-parser";
-import cors from "cors";
-import dotenv from "dotenv";
-import path from "path";
-import { fileURLToPath } from "url";
-import { dirname } from "path";
+import express from 'express';
+import cookieParser from 'cookie-parser';
+import cors from 'cors';
+import dotenv from 'dotenv';
+import path from 'path';
+import { fileURLToPath } from 'url';
+import { dirname } from 'path';
 
-// DB
-import connectDB from "./config/db.js";
-
-// Routes
-import authRoutes from "./routes/v1/auth.routes.js";
-import taskRoutes from "./routes/v1/task.routes.js";
-import adminRoutes from "./routes/v1/admin.routes.js";
-
+// Route Imports (Ensure these paths match your project)
+import authRoutes from './routes/v1/auth.routes.js';
+import taskRoutes from './routes/v1/task.routes.js';
+import adminRoutes from './routes/v1/admin.routes.js';
+import connectDB from './config/db.js';
+import Res from './routes/v1/resource.routes.js';
+import taskAdminRoutes from './routes/v1/admin.task.routes.js';
+import adminResourceRoutes from './routes/v1/admin.resource.routes.js';
 dotenv.config();
-
-console.log("🔥 Server file loaded");
-
 const app = express();
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
-/* =========================
-   1. Core Middleware
-========================= */
+// 1. Core Middleware
 app.use(express.json());
 app.use(cookieParser());
 
-/* =========================
-   2. CORS (Vercel ↔ Render)
-========================= */
-const allowedOrigin =
-  process.env.NODE_ENV === "production"
-    ? "https://dev-hub-lac-ten.vercel.app"
-    : "http://localhost:3000";
+// 2. Optimized CORS (No manual res.header blocks needed)
+// Use an explicit origin when `credentials: true` is required.
+const defaultFrontend = process.env.FRONTEND_URL || 'http://localhost:3000';
 
-app.use(
-  cors({
-    origin: allowedOrigin,
-    credentials: true,
-    methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
-    allowedHeaders: ["Content-Type", "Authorization"],
-  })
-);
+app.use(cors({
+  origin: (origin, callback) => {
+    // If no origin (e.g. direct server-to-server requests or same-origin),
+    // fall back to the configured default frontend. Otherwise echo the
+    // request origin so the browser receives an explicit Access-Control-Allow-Origin.
+    if (!origin) return callback(null, defaultFrontend);
+    return callback(null, origin);
+  },
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'Cookie']
+}));
 
-// Handle preflight
-app.options("*", cors({ origin: allowedOrigin, credentials: true }));
+// 3. Static Files & Routes
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+app.use('/api/auth', authRoutes);
+app.use('/api/tasks', taskRoutes);
+app.use('/api/admin', adminRoutes);
+app.use('/api/resources', Res); // Assuming resources are handled in adminRoutes
+app.use('/api/admin/tasks', taskAdminRoutes); // Admin-specific task routes
+app.use('/api/admin/resources', adminResourceRoutes); // Admin-specific resource routes
 
-/* =========================
-   3. Static Files & Routes
-========================= */
-app.use("/uploads", express.static(path.join(__dirname, "uploads")));
+// 4. Health Check
+app.get('/health', (req, res) => res.status(200).json({ status: 'healthy' }));
 
-app.use("/api/auth", authRoutes);
-app.use("/api/tasks", taskRoutes);
-app.use("/api/admin", adminRoutes);
+const PORT = process.env.PORT || 5000;
 
-/* =========================
-   4. Health Check
-========================= */
-app.get("/health", (req, res) => {
-  res.status(200).json({
-    status: "healthy",
-    environment: process.env.NODE_ENV,
-    timestamp: new Date().toISOString(),
-  });
-});
-
-/* =========================
-   5. Start Server + DB
-========================= */
-const startServer = async () => {
+const start = async () => {
   try {
-    console.log("👉 DB URI exists?", !!process.env.MONGO_URI);
-
     await connectDB();
-
-    const PORT = process.env.PORT;
-    if (!PORT) throw new Error("PORT not defined");
-
-    app.listen(PORT, () => {
-      console.log(`🚀 Server running on port ${PORT}`);
-    });
-  } catch (error) {
-    console.error("❌ Server startup failed:", error);
+    app.listen(PORT, () => console.log(`🚀 Server on port ${PORT}`));
+  } catch (err: any) {
+    console.error('Failed to start server:', err.message || err);
     process.exit(1);
   }
 };
 
-startServer();
+start();
