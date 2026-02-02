@@ -1,19 +1,11 @@
-// frontend/components/admin/AdminDashboard.tsx
 "use client";
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { 
-  Users, 
-  ClipboardList, 
-  BookOpen, 
-  MoreHorizontal, 
-  Filter, 
-  Search,
-  Loader2,
-  AlertCircle 
+  Users, ClipboardList, BookOpen, MoreHorizontal, 
+  Filter, Search, Loader2, AlertCircle 
 } from 'lucide-react';
 
-// --- TYPE DEFINITIONS FOR VERCEL BUILD SAFETY ---
 interface Activity {
   studentName: string;
   taskName: string;
@@ -32,6 +24,9 @@ interface AdminProfile {
   avatar: string;
 }
 
+// Move API_BASE outside to ensure stability
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
+
 const AdminDashboard = () => {
   const [activities, setActivities] = useState<Activity[]>([]);
   const [stats, setStats] = useState<DashboardStats>({ students: 0, pending: 0, resources: 0 });
@@ -39,53 +34,57 @@ const AdminDashboard = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Use the Environment Variable for Production
-  const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
-
   useEffect(() => {
     const fetchAdminData = async () => {
       try {
         setLoading(true);
         setError(null);
         
-        // Parallel fetching for performance
-        const [statsRes, profileRes] = await Promise.all([
+        // Parallel fetching
+        const [statsRes, profileRes] = await Promise.allSettled([
           axios.get(`${API_BASE}/admin/stats`, { withCredentials: true }),
           axios.get(`${API_BASE}/auth/profile`, { withCredentials: true })
         ]);
         
-        // Map Stats safely
-        setStats({
-          students: statsRes.data?.userCount || 0,
-          pending: statsRes.data?.pendingTasksCount || 0,
-          resources: statsRes.data?.resourceCount || 0
-        });
-        
-        setActivities(statsRes.data?.recentActivity || []);
+        // Handle Stats Response
+        if (statsRes.status === 'fulfilled') {
+          const data = statsRes.value.data;
+          setStats({
+            students: data?.userCount || 0,
+            pending: data?.pendingTasksCount || 0,
+            resources: data?.resourceCount || 0
+          });
+          setActivities(data?.recentActivity || []);
+        }
 
-        // Set Admin Info
-        const name = profileRes.data?.name || 'Admin User';
-        setAdminInfo({
-          name: name,
-          avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=6366f1&color=fff`
-        });
+        // Handle Profile Response
+        if (profileRes.status === 'fulfilled') {
+          const name = profileRes.value.data?.name || 'Admin User';
+          setAdminInfo({
+            name: name,
+            avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=6366f1&color=fff`
+          });
+        } else {
+            // If profile fails, it might be a session issue
+            console.error("Profile fetch failed");
+        }
 
       } catch (err: any) {
         console.error("Admin fetch error:", err);
-        setError("Could not connect to the server. Please check your Render backend status.");
+        setError("Unable to sync data. Please check your connection to the backend.");
       } finally {
         setLoading(false);
       }
     };
     fetchAdminData();
-  }, [API_BASE]);
+  }, []);
 
   if (loading) {
     return (
       <div className="flex h-[60vh] items-center justify-center">
         <div className="flex flex-col items-center gap-4">
           <Loader2 className="animate-spin text-indigo-600" size={40} />
-          <p className="text-slate-500 font-bold animate-pulse text-xs uppercase tracking-widest">Fetching Dashboard Data...</p>
+          <p className="text-slate-500 font-bold animate-pulse text-xs uppercase tracking-widest">Synchronizing Dashboard...</p>
         </div>
       </div>
     );
@@ -93,7 +92,6 @@ const AdminDashboard = () => {
 
   return (
     <div className="p-8 space-y-8 max-w-7xl mx-auto animate-in fade-in duration-500">
-      
       {error && (
         <div className="bg-red-50 border border-red-200 text-red-700 px-6 py-4 rounded-2xl flex items-center gap-3 shadow-sm">
           <AlertCircle size={20} />
@@ -110,7 +108,7 @@ const AdminDashboard = () => {
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
             <input 
               type="text" 
-              placeholder="Search students, tasks..." 
+              placeholder="Search..." 
               className="pl-10 pr-4 py-2 bg-slate-100 border-none rounded-xl text-sm w-full md:w-64 focus:ring-2 focus:ring-indigo-500 outline-none transition-all" 
             />
           </div>
@@ -156,10 +154,10 @@ const AdminDashboard = () => {
         <div className="p-8 border-b border-slate-50 flex justify-between items-center bg-slate-50/20">
           <div>
             <h3 className="font-black text-slate-900 text-lg">Recent Student Activity</h3>
-            <p className="text-xs text-slate-400 font-medium mt-1">Real-time task submission updates across all Developers.</p>
+            <p className="text-xs text-slate-400 font-medium mt-1">Real-time task submission updates.</p>
           </div>
-          <button className="flex items-center gap-2 bg-indigo-600 text-white px-5 py-2.5 rounded-xl font-bold text-sm hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-100">
-            <Filter size={16} /> Filter View
+          <button className="flex items-center gap-2 bg-indigo-600 text-white px-5 py-2.5 rounded-xl font-bold text-sm hover:bg-indigo-700 transition-all shadow-lg">
+            <Filter size={16} /> Filter
           </button>
         </div>
 
@@ -167,10 +165,10 @@ const AdminDashboard = () => {
           <table className="w-full text-left border-collapse">
             <thead>
               <tr className="text-[10px] font-black text-slate-400 uppercase tracking-widest bg-slate-50/30">
-                <th className="px-8 py-4">Student Name</th>
-                <th className="px-8 py-4">Task Name</th>
+                <th className="px-8 py-4">Student</th>
+                <th className="px-8 py-4">Task</th>
                 <th className="px-8 py-4">Status</th>
-                <th className="px-8 py-4">Last Updated</th>
+                <th className="px-8 py-4">Updated</th>
                 <th className="px-8 py-4 text-center">Action</th>
               </tr>
             </thead>
@@ -181,11 +179,9 @@ const AdminDashboard = () => {
                     <img 
                       src={`https://ui-avatars.com/api/?name=${encodeURIComponent(item.studentName)}&background=random`} 
                       className="w-8 h-8 rounded-full border border-slate-100" 
-                      alt="Avatar"
+                      alt=""
                     />
-                    <span className={`text-sm font-bold transition-colors ${
-                      item.studentName === 'Unknown Student' ? 'text-slate-400 italic' : 'text-slate-700 group-hover:text-indigo-600'
-                    }`}>
+                    <span className="text-sm font-bold text-slate-700 group-hover:text-indigo-600">
                       {item.studentName}
                     </span>
                   </td>
@@ -193,15 +189,14 @@ const AdminDashboard = () => {
                   <td className="px-8 py-5">
                     <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider ${
                       item.status === 'Completed' ? 'bg-emerald-50 text-emerald-600' : 
-                      item.status === 'Reviewing' ? 'bg-orange-50 text-orange-600' : 
-                      item.status === 'Submitted' ? 'bg-blue-50 text-blue-600' : 'bg-indigo-50 text-indigo-600'
+                      item.status === 'Reviewing' ? 'bg-orange-50 text-orange-600' : 'bg-blue-50 text-blue-600'
                     }`}>
                       {item.status}
                     </span>
                   </td>
                   <td className="px-8 py-5 text-sm text-slate-400 font-medium">{item.lastUpdated}</td>
                   <td className="px-8 py-5 text-center">
-                    <button className="p-2 text-slate-300 hover:text-slate-600 hover:bg-slate-100 rounded-lg transition-all">
+                    <button className="p-2 text-slate-300 hover:text-slate-600 hover:bg-slate-100 rounded-lg">
                       <MoreHorizontal size={20} />
                     </button>
                   </td>
@@ -211,7 +206,7 @@ const AdminDashboard = () => {
                   <td colSpan={5} className="text-center py-20">
                     <div className="flex flex-col items-center gap-2">
                       <ClipboardList className="text-slate-200" size={48} />
-                      <p className="text-slate-400 font-bold">No recent activity found</p>
+                      <p className="text-slate-400 font-bold">No activity recorded</p>
                     </div>
                   </td>
                 </tr>

@@ -5,12 +5,13 @@ import jwt from 'jsonwebtoken';
 
 const isProduction = process.env.NODE_ENV === 'production';
 
-// Centralized cookie configuration for consistency
+// Centralized cookie configuration
 const cookieOptions = {
     httpOnly: true,
-    secure: true, // Always true for Render/Vercel HTTPS
-    sameSite: 'none' as const, // Required for cross-site cookies
-    maxAge: 24 * 60 * 60 * 1000 // 1 day
+    secure: true, // MUST be true for SameSite: 'none'
+    sameSite: 'none' as const, // Required for Cross-Site (Vercel -> Render)
+    maxAge: 24 * 60 * 60 * 1000, // 1 day
+    path: '/',
 };
 
 export const register = async (req: Request, res: Response) => {
@@ -49,6 +50,7 @@ export const login = async (req: Request, res: Response) => {
             { expiresIn: '1d' }
         );
 
+        // Explicitly set cookie before sending JSON
         res.cookie('token', token, cookieOptions);
 
         res.json({
@@ -61,11 +63,12 @@ export const login = async (req: Request, res: Response) => {
 };
 
 export const logout = (req: Request, res: Response) => {
-    // Clear the cookie by setting an expired date
-    res.cookie('token', '', { 
-        ...cookieOptions, 
-        expires: new Date(0),
-        maxAge: 0 
+    // When clearing cookies cross-site, options MUST match the original exactly
+    res.clearCookie('token', {
+        httpOnly: true,
+        secure: true,
+        sameSite: 'none',
+        path: '/',
     });
     res.status(200).json({ message: "Logged out successfully" });
 };
@@ -86,7 +89,7 @@ export const updateProfile = async (req: any, res: Response) => {
         const userId = req.user?.id || req.user?._id;
         const updatedUser = await User.findByIdAndUpdate(
             userId,
-            { $set: { ...req.body } }, // Ensure body keys match schema
+            { $set: { ...req.body } }, 
             { new: true, runValidators: true }
         ).select('-password');
         res.json(updatedUser);

@@ -1,7 +1,7 @@
 // backend/src/routes/v1/auth.routes.ts
 import express from 'express';
-import { register, login , getProfile ,updateProfile, logout} from '../../controllers/auth.controller';
 import { protect } from '../../middleware/auth.middleware';
+import { getProfile, login, updateProfile,logout,register } from '../../controllers/auth.controller';
 
 const router = express.Router();
 

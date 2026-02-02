@@ -1,21 +1,24 @@
 'use client';
-import React from 'react';
-import { Mail, Lock, Eye, ArrowRight } from 'lucide-react';
+import React, { useState } from 'react';
+import { Mail, Lock, Eye, ArrowRight, Loader2 } from 'lucide-react';
 import axios from 'axios';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link'; 
 
-const LoginForm = () => {
-    const [email, setEmail] = React.useState('');
-    const [password, setPassword] = React.useState('');
-    const [error, setError] = React.useState('');
-    const router = useRouter();
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
 
-    const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
+const LoginForm = () => {
+    const [email, setEmail] = useState('');
+    const [password, setPassword] = useState('');
+    const [error, setError] = useState('');
+    const [isLoading, setIsLoading] = useState(false);
+    const [showPassword, setShowPassword] = useState(false);
+    const router = useRouter();
 
     const handleLogin = async (e: React.FormEvent) => {
         e.preventDefault();
         setError('');
+        setIsLoading(true);
 
         try {
             const response = await axios.post(`${API_BASE}/auth/login`,
@@ -25,12 +28,14 @@ const LoginForm = () => {
             
             if (response.status === 200) {
                 const role = response.data.user.role;
-                
                 const target = role === 'admin' ? '/admin/dashboard' : '/student/dashboard';
+                
+                // Use location.href to ensure middleware sees the new cookie
                 window.location.href = target;
             }
         } catch (err: any) {
-            setError(err.response?.data?.message || 'Login failed. Please try again.');
+            setIsLoading(false);
+            setError(err.response?.data?.message || 'Authentication failed. Please check your network.');
         }
     }
 
@@ -84,22 +89,32 @@ const LoginForm = () => {
                         <div className="relative">
                             <Lock className="absolute left-3 top-3.5 text-gray-400" size={18} />
                             <input
-                                type="password"
+                                type={showPassword ? "text" : "password"}
                                 required
                                 value={password}
                                 onChange={(e) => setPassword(e.target.value)}
                                 placeholder="••••••••"
                                 className="w-full pl-10 pr-10 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none text-slate-800"
                             />
-                            <Eye className="absolute right-3 top-3.5 text-gray-400 cursor-pointer" size={18} />
+                            <div 
+                                className="absolute right-3 top-3.5 text-gray-400 cursor-pointer p-1 hover:text-indigo-600"
+                                onClick={() => setShowPassword(!showPassword)}
+                            >
+                                <Eye size={18} />
+                            </div>
                         </div>
                     </div>
 
                     <button
                         type="submit"
-                        className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-4 rounded-xl flex items-center justify-center gap-2 transition-all shadow-lg shadow-indigo-100"
+                        disabled={isLoading}
+                        className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-4 rounded-xl flex items-center justify-center gap-2 transition-all shadow-lg disabled:opacity-70"
                     >
-                        Login to DevHub <ArrowRight size={20} />
+                        {isLoading ? (
+                            <><Loader2 className="animate-spin" size={20} /> Signing in...</>
+                        ) : (
+                            <>Login to DevHub <ArrowRight size={20} /></>
+                        )}
                     </button>
                 </form>
 
