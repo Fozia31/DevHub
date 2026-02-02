@@ -25,7 +25,9 @@ const LoginForm = () => {
             
             if (response.status === 200) {
                 const role = response.data.user.role;
-                router.push(role === 'admin' ? '/admin/dashboard' : '/student/dashboard');
+                
+                const target = role === 'admin' ? '/admin/dashboard' : '/student/dashboard';
+                window.location.href = target;
             }
         } catch (err: any) {
             setError(err.response?.data?.message || 'Login failed. Please try again.');

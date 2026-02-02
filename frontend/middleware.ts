@@ -1,4 +1,3 @@
-// frontend/middleware.ts
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 
@@ -6,19 +5,29 @@ export function middleware(request: NextRequest) {
   const token = request.cookies.get('token')?.value;
   const { pathname } = request.nextUrl;
 
-  // 1. Protect internal pages
+  // 1. Protect internal pages: If no token, go to login
   if (!token && (pathname.startsWith('/student') || pathname.startsWith('/admin'))) {
     return NextResponse.redirect(new URL('/login', request.url));
   }
 
-  // 2. Role-based redirection if token exists
   if (token) {
     try {
+      // Decode JWT Payload without using Node.js 'Buffer'
       const payloadBase64 = token.split('.')[1];
-      const decodedPayload = JSON.parse(atob(payloadBase64));
+      
+      // Standard Base64 decoding for Edge Runtime
+      const base64 = payloadBase64.replace(/-/g, '+').replace(/_/g, '/');
+      const jsonPayload = decodeURIComponent(
+        atob(base64)
+          .split('')
+          .map((c) => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2))
+          .join('')
+      );
+      
+      const decodedPayload = JSON.parse(jsonPayload);
       const userRole = decodedPayload.role;
 
-      // Prevent role-crossing
+      // 2. Role-based Protection: Prevent role-crossing
       if (pathname.startsWith('/student') && userRole === 'admin') {
         return NextResponse.redirect(new URL('/admin/dashboard', request.url));
       }
@@ -26,13 +35,14 @@ export function middleware(request: NextRequest) {
         return NextResponse.redirect(new URL('/student/dashboard', request.url));
       }
 
-      // Redirect away from login if already authenticated
-      if (pathname === '/login') {
+      // 3. Authenticated Redirect: If logged in, don't show Login/Register
+      if (pathname === '/login' || pathname === '/register') {
         const dashboard = userRole === 'admin' ? '/admin/dashboard' : '/student/dashboard';
         return NextResponse.redirect(new URL(dashboard, request.url));
       }
     } catch (error) {
-      // If token is invalid, clear it
+      // If token is malformed or decoding fails, clear cookie and send to login
+      console.error("Middleware Auth Error:", error);
       const response = NextResponse.redirect(new URL('/login', request.url));
       response.cookies.delete('token');
       return response;
@@ -42,12 +52,11 @@ export function middleware(request: NextRequest) {
   return NextResponse.next();
 }
 
-// FIXED MATCHER: Ensure every string starts with /
 export const config = {
   matcher: [
     '/student/:path*', 
     '/admin/:path*', 
     '/login', 
-    '/register' // Fixed: was likely missing a slash or had a typo here
+    '/register'
   ],
 };
