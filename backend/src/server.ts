@@ -22,18 +22,19 @@ const app = express();
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
-// Middleware
+// ========== MIDDLEWARE ==========
 app.use(cookieParser());
 app.use(express.json());
 
-// CORS Configuration
+// ========== CORS CONFIGURATION ==========
 const allowedOrigins = [
   'https://dev-hub-lac-ten.vercel.app', 
   'http://localhost:3000',               
   'http://127.0.0.1:3000'               
 ];
 
-app.use(cors({
+// Configure CORS middleware
+const corsOptions = {
   origin: function (origin, callback) {
     // Allow requests with no origin (like mobile apps or curl)
     if (!origin) return callback(null, true);
@@ -46,22 +47,72 @@ app.use(cors({
     }
   },
   credentials: true,
-  methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
-  allowedHeaders: ['Content-Type', 'Authorization', 'set-cookie']
-}));
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+  allowedHeaders: [
+    'Content-Type', 
+    'Authorization', 
+    'Set-Cookie', 
+    'Cookie',
+    'X-Requested-With',
+    'Accept'
+  ],
+  exposedHeaders: [
+    'Set-Cookie',
+    'Authorization',
+    'Content-Length'
+  ],
+  maxAge: 86400 // 24 hours in seconds
+};
 
+// Apply CORS to all routes
+app.use(cors(corsOptions));
+
+// Handle pre-flight requests for all routes
+app.options('*', cors(corsOptions));
+
+// ========== STATIC FILES ==========
 app.use('/uploads', express.static(path.join(__dirname, 'uploads'))); 
 
-// Routes
+// ========== ROUTES ==========
 app.use('/api/auth', authRoutes);
 app.use('/api/tasks', taskRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/admin/tasks', adminTaskRoutes);
 app.use('/api/resources', resourceRoutes);
 
-app.get('/health', (req, res) => res.status(200).send('Server is healthy'));
+// ========== TEST ENDPOINTS ==========
+app.get('/health', (req, res) => res.status(200).json({ 
+  status: 'healthy',
+  timestamp: new Date().toISOString(),
+  environment: process.env.NODE_ENV
+}));
 
-// Migration logic
+// Test cookie endpoint
+app.get('/api/test-cookie', (req, res) => {
+  const cookieOptions = {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+    maxAge: 24 * 60 * 60 * 1000,
+    path: '/',
+  };
+  
+  // Set domain only in production for Render
+  if (process.env.NODE_ENV === 'production') {
+    cookieOptions.domain = '.onrender.com';
+  }
+  
+  res.cookie('test_cookie', 'cookie_is_working', cookieOptions);
+  
+  res.json({ 
+    message: 'Test cookie set successfully',
+    cookies_received: req.cookies,
+    cookie_options: cookieOptions,
+    timestamp: new Date().toISOString()
+  });
+});
+
+// ========== MIGRATION LOGIC ==========
 const runMigration = async () => {
   try {
     const student = await User.findOne({ role: 'student' });
@@ -79,7 +130,20 @@ const runMigration = async () => {
   }
 };
 
-// Start Server properly
+// ========== ERROR HANDLING ==========
+app.use((req, res) => {
+  res.status(404).json({ message: 'Route not found' });
+});
+
+app.use((err, req, res, next) => {
+  console.error('Server error:', err);
+  res.status(500).json({ 
+    message: 'Internal server error',
+    error: process.env.NODE_ENV === 'development' ? err.message : undefined
+  });
+});
+
+// ========== START SERVER ==========
 const PORT = process.env.PORT || 5000;
 
 const startServer = async () => {
@@ -91,6 +155,8 @@ const startServer = async () => {
     // 2. Start Listening
     app.listen(PORT, async () => {
       console.log(`🚀 Server running on port ${PORT}`);
+      console.log(`🌐 Environment: ${process.env.NODE_ENV}`);
+      console.log(`🔗 Frontend URL: ${process.env.FRONTEND_URL}`);
       
       // 3. Run migration in production after DB is ready
       if (process.env.NODE_ENV === 'production') {

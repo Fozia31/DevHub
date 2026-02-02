@@ -5,7 +5,6 @@ import axios from 'axios';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 
-// FIXED: Removed /api from the end
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
 
 const LoginForm = () => {
@@ -21,6 +20,7 @@ const LoginForm = () => {
 
     const handleLogin = async (e: React.FormEvent) => {
         e.preventDefault();
+        e.stopPropagation();
         setError('');
         setIsLoading(true);
 
