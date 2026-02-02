@@ -38,8 +38,8 @@ const StudentTaskView = () => {
     try {
       setLoading(true);
       const [tasksRes, statsRes] = await Promise.all([
-        axios.get(`${API_BASE}/tasks/student/tasks`, { withCredentials: true }),
-        axios.get(`${API_BASE}/tasks/stats`, { withCredentials: true })
+        axios.get(`${API_BASE}/api/tasks/student/tasks`, { withCredentials: true }),
+        axios.get(`${API_BASE}/api/tasks/stats`, { withCredentials: true })
       ]);
       setTasks(tasksRes.data || []);
       setStatsData(statsRes.data || { pending: 0, active: 0, completed: 0 });
@@ -57,11 +57,11 @@ const StudentTaskView = () => {
       // Optimistic UI update
       setTasks((prev) => prev.map((t) => t._id === taskId ? { ...t, status: newValue as any } : t));
       
-      await axios.patch(`${API_BASE}/tasks/${taskId}/update`, {
+      await axios.patch(`${API_BASE}/api/tasks/${taskId}/update`, {
         status: newValue
       }, { withCredentials: true });
       
-      const statsRes = await axios.get(`${API_BASE}/tasks/stats`, { withCredentials: true });
+      const statsRes = await axios.get(`${API_BASE}/api/tasks/stats`, { withCredentials: true });
       setStatsData(statsRes.data);
     } catch (error) {
       alert("Failed to update status");

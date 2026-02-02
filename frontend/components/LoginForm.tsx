@@ -8,6 +8,8 @@ import Link from 'next/link';
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
 
 const LoginForm = () => {
+    console.log('Login Page - API URL:', process.env.NEXT_PUBLIC_API_URL);
+
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [error, setError] = useState('');
@@ -21,7 +23,7 @@ const LoginForm = () => {
         setIsLoading(true);
 
         try {
-            const response = await axios.post(`${API_BASE}/auth/login`,
+            const response = await axios.post(`${API_BASE}/api/auth/login`,
                 { email, password },
                 { withCredentials: true }
             );

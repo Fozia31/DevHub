@@ -40,7 +40,7 @@ const StudentProfile = () => {
 
   // PRODUCTION API CONFIG - Uses Render URL in production
   const API_BASE = process.env.NEXT_PUBLIC_API_URL 
-    ? `${process.env.NEXT_PUBLIC_API_URL}/auth` 
+    ? `${process.env.NEXT_PUBLIC_API_URL}/api/auth` 
     : 'http://localhost:5000/api/auth';
 
   useEffect(() => { fetchProfile(); }, []);
@@ -48,7 +48,7 @@ const StudentProfile = () => {
   const fetchProfile = async () => {
     try {
       setLoading(true);
-      const res = await axios.get(`${API_BASE}/profile`, { withCredentials: true });
+      const res = await axios.get(`${API_BASE}/api/profile`, { withCredentials: true });
       const userData = res.data;
       setUser(userData);
       
@@ -73,7 +73,7 @@ const StudentProfile = () => {
     e.preventDefault();
     setSaving(true);
     try {
-      const res = await axios.patch(`${API_BASE}/profile`, formData, { withCredentials: true });
+      const res = await axios.patch(`${API_BASE}/api/profile`, formData, { withCredentials: true });
       setUser(res.data);
       setIsEditModalOpen(false);
     } catch (err) { 

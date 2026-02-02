@@ -42,8 +42,8 @@ const AdminDashboard = () => {
         
         // Parallel fetching
         const [statsRes, profileRes] = await Promise.allSettled([
-          axios.get(`${API_BASE}/admin/stats`, { withCredentials: true }),
-          axios.get(`${API_BASE}/auth/profile`, { withCredentials: true })
+          axios.get(`${API_BASE}/api/admin/stats`, { withCredentials: true }),
+          axios.get(`${API_BASE}/api/auth/profile`, { withCredentials: true })
         ]);
         
         // Handle Stats Response

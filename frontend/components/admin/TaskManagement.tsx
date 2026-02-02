@@ -44,7 +44,7 @@ const TaskManagement = () => {
   const fetchTasks = async () => {
     try {
       setLoading(true);
-      const response = await axios.get(`${API_BASE}/admin/tasks`, { withCredentials: true });
+      const response = await axios.get(`${API_BASE}/api/admin/tasks`, { withCredentials: true });
       setTasks(response.data || []);
     } catch (error) {
       console.error("Error fetching tasks:", error);

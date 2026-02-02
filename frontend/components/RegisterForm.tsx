@@ -16,7 +16,7 @@ const Sidebar = ({ role = "admin" }) => {
 
   const handleLogout = async () => {
     try {
-      await axios.post(`${API_BASE}/auth/logout`, {}, { withCredentials: true });
+      await axios.post(`${API_BASE}/api/auth/logout`, {}, { withCredentials: true });
       
       // Hard reset to clear any lingering state
       window.location.href = '/login';

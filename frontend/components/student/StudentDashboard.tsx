@@ -48,10 +48,10 @@ const StudentDashboard = () => {
         
         // Fetching all data in parallel for speed
         const [profileRes, tasksRes, statsRes, resourceRes] = await Promise.all([
-          axios.get(`${API_BASE}/auth/profile`, { withCredentials: true }),
-          axios.get(`${API_BASE}/tasks/student/tasks?limit=5`, { withCredentials: true }),
-          axios.get(`${API_BASE}/tasks/stats`, { withCredentials: true }),
-          axios.get(`${API_BASE}/resources`, { withCredentials: true }) 
+          axios.get(`${API_BASE}/api/auth/profile`, { withCredentials: true }),
+          axios.get(`${API_BASE}/api/tasks/student/tasks?limit=5`, { withCredentials: true }),
+          axios.get(`${API_BASE}/api/tasks/stats`, { withCredentials: true }),
+          axios.get(`${API_BASE}/api/resources`, { withCredentials: true }) 
         ]);
         
         setUser(profileRes.data);

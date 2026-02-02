@@ -32,7 +32,7 @@ const ResourceManagement = () => {
 
   const fetchResources = async () => {
     try {
-      const response = await axios.get(`${API_BASE}/resources`, { withCredentials: true });
+      const response = await axios.get(`${API_BASE}/api/resources`, { withCredentials: true });
       setResources(response.data || []);
       setLoading(false);
     } catch (error) {
@@ -67,9 +67,9 @@ const ResourceManagement = () => {
     try {
       const config = { withCredentials: true };
       if (editingId) {
-        await axios.put(`${API_BASE}/resources/${editingId}`, formData, config);
+        await axios.put(`${API_BASE}/api/resources/${editingId}`, formData, config);
       } else {
-        await axios.post(`${API_BASE}/resources/add`, formData, config);
+        await axios.post(`${API_BASE}/api/resources/add`, formData, config);
       }
       closeModal();
       fetchResources();
@@ -99,7 +99,7 @@ const ResourceManagement = () => {
   const handleDelete = async (id: string) => {
     if(!window.confirm("Delete this resource?")) return;
     try {
-      await axios.delete(`${API_BASE}/resources/${id}`, { withCredentials: true });
+      await axios.delete(`${API_BASE}/api/resources/${id}`, { withCredentials: true });
       fetchResources();
     } catch (error) {
       console.error("Error deleting resource");
