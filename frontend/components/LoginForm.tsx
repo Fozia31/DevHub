@@ -1,7 +1,6 @@
 'use client';
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Mail, Lock, Eye, ArrowRight, Loader2 } from 'lucide-react';
-import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
@@ -12,241 +11,204 @@ const LoginForm = () => {
     const [error, setError] = useState('');
     const [isLoading, setIsLoading] = useState(false);
     const [showPassword, setShowPassword] = useState(false);
-    const [isClient, setIsClient] = useState(false); // Add this
-    const router = useRouter();
 
-    // Debug on mount - ONLY on client side
-    useEffect(() => {
-        setIsClient(true); // Mark that we're on client
-        console.log('🔧 Login Form Mounted (Client Side)');
-        console.log('API Base:', API_BASE);
-        
-        // Only access browser APIs on client
-        if (typeof window !== 'undefined') {
-            console.log('Current cookies:', document.cookie);
-            console.log('Has localStorage token?', localStorage.getItem('auth_token') ? 'Yes' : 'No');
-        }
-    }, []);
-
-    const handleLogin = async (e: React.MouseEvent) => {
+    const handleLogin = async (e: React.FormEvent) => {
         e.preventDefault();
         setError('');
         setIsLoading(true);
-        
-        console.log('🚀 Login attempt with:', { email });
 
         try {
             const response = await fetch(`${API_BASE}/api/auth/login`, {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
+                headers: { 'Content-Type': 'application/json' },
                 credentials: 'include',
                 body: JSON.stringify({ email, password })
             });
 
-            console.log('📥 Response status:', response.status);
-            
             const data = await response.json();
-            console.log('📥 Response data:', data);
             
             if (response.ok) {
-                console.log('✅ Login successful!');
-                
-                // Store in localStorage as backup - only on client
-                if (typeof window !== 'undefined' && data.token) {
-                    localStorage.setItem('auth_token', data.token);
-                    localStorage.setItem('user', JSON.stringify(data.user));
-                    console.log('💾 Token saved to localStorage:', data.token.substring(0, 20) + '...');
-                }
-                
-                // Try to set cookie manually if not set by server - only on client
-                if (typeof window !== 'undefined' && data.token && !document.cookie.includes('token')) {
-                    document.cookie = `token=${data.token}; path=/; max-age=86400; secure; samesite=none`;
-                    console.log('🔧 Manually set cookie');
-                }
-                
-                // Redirect based on role
-                const role = data.user?.role || 'student';
-                console.log('👤 User role:', role);
-                
+                // Client-side only operations
                 if (typeof window !== 'undefined') {
-                    if (role === 'admin') {
-                        console.log('➡️ Redirecting to admin dashboard');
-                        window.location.href = '/admin/dashboard';
-                    } else {
-                        console.log('➡️ Redirecting to student dashboard');
-                        window.location.href = '/student/dashboard';
+                    if (data.token) {
+                        localStorage.setItem('auth_token', data.token);
+                        localStorage.setItem('user', JSON.stringify(data.user));
                     }
+                    
+                    const role = data.user?.role || 'student';
+                    window.location.href = role === 'admin' ? '/admin/dashboard' : '/student/dashboard';
                 }
             } else {
                 setError(data.message || 'Login failed');
                 setIsLoading(false);
             }
-        } catch (err: any) {
-            console.error('❌ Login error:', err);
+        } catch (err) {
             setError('Network error. Please try again.');
             setIsLoading(false);
         }
     };
 
-    // Test backend connection
-    const testBackend = async () => {
-        try {
-            console.log('🔍 Testing backend connection...');
-            const response = await fetch(`${API_BASE}/health`);
-            const data = await response.text();
-            console.log('✅ Backend health:', data);
-            alert(`Backend is healthy: ${data}`);
-        } catch (err) {
-            console.error('❌ Backend test failed:', err);
-            alert(`Backend test failed. Check if ${API_BASE} is accessible.`);
-        }
-    };
-
-    // Test direct login (bypass UI)
-    const testDirectLogin = async () => {
-        console.log('🧪 Testing direct login...');
-        await handleLogin({ preventDefault: () => {} } as React.MouseEvent);
-    };
-
-    // Helper to safely check cookies (client only)
-    const hasCookies = isClient && document.cookie.length > 0;
-
     return (
-        <div className="min-h-screen bg-gray-50 flex flex-col justify-center items-center p-4 text-slate-900">
-            <div className="absolute top-8 left-8 flex items-center gap-2">
-                <div className="bg-indigo-600 p-1.5 rounded-lg">
-                    <code className="text-white font-bold tracking-tighter">{"</>"}</code>
+        <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 flex flex-col justify-center items-center p-4">
+            {/* Header */}
+            <div className="absolute top-6 left-6 flex items-center gap-2">
+                <div className="bg-gradient-to-r from-blue-600 to-indigo-600 p-2 rounded-lg shadow-md">
+                    <code className="text-white font-bold text-sm">{"</>"}</code>
                 </div>
-                <span className="font-bold text-xl text-gray-900">DevHub</span>
+                <span className="font-bold text-xl bg-gradient-to-r from-gray-800 to-gray-900 bg-clip-text text-transparent">
+                    DevHub
+                </span>
             </div>
 
-            <div className="w-full max-w-[400px] bg-white rounded-2xl shadow-xl p-8 md:p-12">
-                <div className="flex flex-col items-center mb-4">
-                    <div className="w-12 h-12 bg-indigo-50 text-indigo-600 rounded-full flex items-center justify-center mb-4">
-                        <Lock size={24} />
-                    </div>
-                    <h1 className="text-3xl font-bold text-gray-900 text-center">Welcome back</h1>
-                    <p className="text-gray-500 mt-2 text-center text-sm">
-                        Enter your credentials to access the developer dashboard.
-                    </p>
-                </div>
-
-                {error && (
-                    <div className="mb-4 p-3 bg-red-50 text-red-600 text-sm rounded-lg border border-red-100">
-                        <strong>Error:</strong> {error}
-                    </div>
-                )}
-
-                {/* Debug Panel - Only show useful info */}
-                {isClient && (
-                    <div className="mb-4 p-3 bg-blue-50 text-blue-600 text-sm rounded-lg border border-blue-100">
-                        <div className="font-semibold mb-2">🔧 Debug Panel (Client Only)</div>
-                        <div className="mb-1">Backend: {API_BASE}</div>
-                        <div className="mb-1">Cookies: {hasCookies ? 'Present' : 'Empty'}</div>
-                        <div className="flex gap-2 mt-2">
-                            <button 
-                                onClick={testBackend}
-                                className="px-2 py-1 bg-blue-100 hover:bg-blue-200 rounded text-xs"
-                            >
-                                Test Backend
-                            </button>
-                            <button 
-                                onClick={testDirectLogin}
-                                className="px-2 py-1 bg-green-100 hover:bg-green-200 rounded text-xs"
-                            >
-                                Test Login
-                            </button>
-                            <button 
-                                onClick={() => console.log('Cookies:', document.cookie)}
-                                className="px-2 py-1 bg-purple-100 hover:bg-purple-200 rounded text-xs"
-                            >
-                                Check Cookies
-                            </button>
+            <div className="w-full max-w-md">
+                {/* Login Card */}
+                <div className="bg-white rounded-2xl shadow-2xl overflow-hidden border border-gray-100">
+                    {/* Card Header with Gradient */}
+                    <div className="bg-gradient-to-r from-blue-600 to-indigo-600 p-6 text-center">
+                        <div className="w-16 h-16 bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center mx-auto mb-4">
+                            <Lock className="text-white" size={28} />
                         </div>
-                    </div>
-                )}
-
-                <div className="space-y-6">
-                    <div>
-                        <label className="block text-sm font-semibold text-gray-700 mb-2">Email Address</label>
-                        <div className="relative">
-                            <Mail className="absolute left-3 top-3.5 text-gray-400" size={18} />
-                            <input
-                                type="email"
-                                required
-                                value={email}
-                                onChange={(e) => setEmail(e.target.value)}
-                                placeholder="e.g. shafqat@devhub.com"
-                                className="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none text-slate-800"
-                                disabled={isLoading}
-                            />
-                        </div>
+                        <h1 className="text-2xl font-bold text-white">Welcome Back</h1>
+                        <p className="text-blue-100 mt-1 text-sm">
+                            Sign in to access your developer dashboard
+                        </p>
                     </div>
 
-                    <div>
-                        <div className="flex justify-between mb-2">
-                            <label className="text-sm font-semibold text-gray-700">Password</label>
-                            <a href="#" className="text-xs font-bold text-indigo-600 hover:text-indigo-700">Forgot?</a>
-                        </div>
-                        <div className="relative">
-                            <Lock className="absolute left-3 top-3.5 text-gray-400" size={18} />
-                            <input
-                                type={showPassword ? "text" : "password"}
-                                required
-                                value={password}
-                                onChange={(e) => setPassword(e.target.value)}
-                                placeholder="••••••••"
-                                className="w-full pl-10 pr-10 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none text-slate-800"
-                                disabled={isLoading}
-                            />
-                            <button
-                                type="button"
-                                className="absolute right-3 top-3.5 text-gray-400 hover:text-indigo-600 p-1"
-                                onClick={() => setShowPassword(!showPassword)}
-                                disabled={isLoading}
-                            >
-                                <Eye size={18} />
-                            </button>
-                        </div>
-                    </div>
-
-                    <button
-                        type="button"
-                        onClick={handleLogin}
-                        disabled={isLoading}
-                        className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-4 rounded-xl flex items-center justify-center gap-2 transition-all shadow-lg disabled:opacity-70 disabled:cursor-not-allowed"
-                    >
-                        {isLoading ? (
-                            <>
-                                <Loader2 className="animate-spin" size={20} />
-                                Signing in...
-                            </>
-                        ) : (
-                            <>
-                                Login to DevHub
-                                <ArrowRight size={20} />
-                            </>
+                    {/* Card Content */}
+                    <div className="p-8">
+                        {error && (
+                            <div className="mb-6 p-4 bg-red-50 border-l-4 border-red-500 rounded-r">
+                                <div className="flex items-center">
+                                    <div className="flex-shrink-0">
+                                        <div className="w-5 h-5 bg-red-500 rounded-full flex items-center justify-center">
+                                            <span className="text-white text-xs">!</span>
+                                        </div>
+                                    </div>
+                                    <div className="ml-3">
+                                        <p className="text-sm text-red-700 font-medium">{error}</p>
+                                    </div>
+                                </div>
+                            </div>
                         )}
-                    </button>
+
+                        <form onSubmit={handleLogin} className="space-y-5">
+                            {/* Email Field */}
+                            <div>
+                                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                                    Email Address
+                                </label>
+                                <div className="relative group">
+                                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                        <Mail className="h-5 w-5 text-gray-400 group-focus-within:text-blue-500 transition-colors" />
+                                    </div>
+                                    <input
+                                        type="email"
+                                        required
+                                        value={email}
+                                        onChange={(e) => setEmail(e.target.value)}
+                                        placeholder="developer@devhub.com"
+                                        className="w-full pl-10 pr-4 py-3.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all bg-gray-50 focus:bg-white"
+                                        disabled={isLoading}
+                                    />
+                                </div>
+                            </div>
+
+                            {/* Password Field */}
+                            <div>
+                                <div className="flex justify-between mb-2">
+                                    <label className="text-sm font-semibold text-gray-700">Password</label>
+                                    <a href="#" className="text-xs font-semibold text-blue-600 hover:text-blue-700 transition-colors">
+                                        Forgot password?
+                                    </a>
+                                </div>
+                                <div className="relative group">
+                                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                        <Lock className="h-5 w-5 text-gray-400 group-focus-within:text-blue-500 transition-colors" />
+                                    </div>
+                                    <input
+                                        type={showPassword ? "text" : "password"}
+                                        required
+                                        value={password}
+                                        onChange={(e) => setPassword(e.target.value)}
+                                        placeholder="Enter your password"
+                                        className="w-full pl-10 pr-12 py-3.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all bg-gray-50 focus:bg-white"
+                                        disabled={isLoading}
+                                    />
+                                    <button
+                                        type="button"
+                                        className="absolute inset-y-0 right-0 pr-3 flex items-center"
+                                        onClick={() => setShowPassword(!showPassword)}
+                                        disabled={isLoading}
+                                    >
+                                        <Eye className="h-5 w-5 text-gray-400 hover:text-gray-600 transition-colors" />
+                                    </button>
+                                </div>
+                            </div>
+
+                            {/* Login Button */}
+                            <button
+                                type="submit"
+                                disabled={isLoading}
+                                className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-semibold py-4 px-4 rounded-xl flex items-center justify-center gap-3 transition-all shadow-lg hover:shadow-xl disabled:opacity-70 disabled:cursor-not-allowed transform hover:-translate-y-0.5 active:translate-y-0"
+                            >
+                                {isLoading ? (
+                                    <>
+                                        <Loader2 className="h-5 w-5 animate-spin" />
+                                        <span>Signing in...</span>
+                                    </>
+                                ) : (
+                                    <>
+                                        <span>Continue to Dashboard</span>
+                                        <ArrowRight className="h-5 w-5" />
+                                    </>
+                                )}
+                            </button>
+                        </form>
+
+                        {/* Divider */}
+                        <div className="mt-8 pt-6 border-t border-gray-200">
+                            <p className="text-center text-sm text-gray-600">
+                                Don't have an account?{' '}
+                                <Link 
+                                    href="/register" 
+                                    className="font-semibold text-blue-600 hover:text-blue-700 transition-colors"
+                                >
+                                    Get started
+                                </Link>
+                            </p>
+                        </div>
+
+                        {/* Test Credentials */}
+                        <div className="mt-6 p-4 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl border border-blue-100">
+                            <div className="text-xs font-semibold text-blue-800 mb-2 flex items-center gap-1">
+                                <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                                Test Credentials
+                            </div>
+                            <div className="grid grid-cols-2 gap-2 text-xs">
+                                <div className="space-y-1">
+                                    <div className="text-gray-600">Email:</div>
+                                    <div className="font-mono text-gray-900">test@gmail.com</div>
+                                </div>
+                                <div className="space-y-1">
+                                    <div className="text-gray-600">Password:</div>
+                                    <div className="font-mono text-gray-900">password123</div>
+                                </div>
+                            </div>
+                            <div className="mt-2 text-xs text-blue-700 font-medium">
+                                Role: <span className="bg-blue-100 px-2 py-1 rounded">Admin</span>
+                            </div>
+                        </div>
+                    </div>
                 </div>
 
-                <div className="pt-6 border-t border-gray-100 text-center mt-6">
-                    <p className="text-sm text-gray-600">
-                        Don't have an account?{' '}
-                        <Link href="/register" className="text-indigo-600 font-bold hover:text-indigo-700">
-                            Create Account
-                        </Link>
+                {/* Footer Note */}
+                <div className="mt-6 text-center">
+                    <p className="text-xs text-gray-500">
+                        By continuing, you agree to our{' '}
+                        <a href="#" className="text-gray-700 hover:text-gray-900">Terms</a>{' '}
+                        and{' '}
+                        <a href="#" className="text-gray-700 hover:text-gray-900">Privacy Policy</a>
                     </p>
-                </div>
-
-                {/* Test credentials */}
-                <div className="mt-4 p-3 bg-gray-50 rounded-lg text-xs text-gray-500">
-                    <div className="font-semibold mb-1">Test Credentials:</div>
-                    <div>Email: test@gmail.com</div>
-                    <div>Password: password123</div>
-                    <div className="mt-1 text-blue-500">Role: Admin</div>
                 </div>
             </div>
         </div>
