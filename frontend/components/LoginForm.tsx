@@ -12,14 +12,20 @@ const LoginForm = () => {
     const [error, setError] = useState('');
     const [isLoading, setIsLoading] = useState(false);
     const [showPassword, setShowPassword] = useState(false);
+    const [isClient, setIsClient] = useState(false); // Add this
     const router = useRouter();
 
-    // Debug on mount
+    // Debug on mount - ONLY on client side
     useEffect(() => {
-        console.log('🔧 Login Form Mounted');
+        setIsClient(true); // Mark that we're on client
+        console.log('🔧 Login Form Mounted (Client Side)');
         console.log('API Base:', API_BASE);
-        console.log('Current cookies:', document.cookie);
-        console.log('Has localStorage token?', localStorage.getItem('auth_token') ? 'Yes' : 'No');
+        
+        // Only access browser APIs on client
+        if (typeof window !== 'undefined') {
+            console.log('Current cookies:', document.cookie);
+            console.log('Has localStorage token?', localStorage.getItem('auth_token') ? 'Yes' : 'No');
+        }
     }, []);
 
     const handleLogin = async (e: React.MouseEvent) => {
@@ -47,15 +53,15 @@ const LoginForm = () => {
             if (response.ok) {
                 console.log('✅ Login successful!');
                 
-                // Store in localStorage as backup
-                if (data.token) {
+                // Store in localStorage as backup - only on client
+                if (typeof window !== 'undefined' && data.token) {
                     localStorage.setItem('auth_token', data.token);
                     localStorage.setItem('user', JSON.stringify(data.user));
                     console.log('💾 Token saved to localStorage:', data.token.substring(0, 20) + '...');
                 }
                 
-                // Try to set cookie manually if not set by server
-                if (data.token && !document.cookie.includes('token')) {
+                // Try to set cookie manually if not set by server - only on client
+                if (typeof window !== 'undefined' && data.token && !document.cookie.includes('token')) {
                     document.cookie = `token=${data.token}; path=/; max-age=86400; secure; samesite=none`;
                     console.log('🔧 Manually set cookie');
                 }
@@ -64,12 +70,14 @@ const LoginForm = () => {
                 const role = data.user?.role || 'student';
                 console.log('👤 User role:', role);
                 
-                if (role === 'admin') {
-                    console.log('➡️ Redirecting to admin dashboard');
-                    window.location.href = '/admin/dashboard';
-                } else {
-                    console.log('➡️ Redirecting to student dashboard');
-                    window.location.href = '/student/dashboard';
+                if (typeof window !== 'undefined') {
+                    if (role === 'admin') {
+                        console.log('➡️ Redirecting to admin dashboard');
+                        window.location.href = '/admin/dashboard';
+                    } else {
+                        console.log('➡️ Redirecting to student dashboard');
+                        window.location.href = '/student/dashboard';
+                    }
                 }
             } else {
                 setError(data.message || 'Login failed');
@@ -102,6 +110,9 @@ const LoginForm = () => {
         await handleLogin({ preventDefault: () => {} } as React.MouseEvent);
     };
 
+    // Helper to safely check cookies (client only)
+    const hasCookies = isClient && document.cookie.length > 0;
+
     return (
         <div className="min-h-screen bg-gray-50 flex flex-col justify-center items-center p-4 text-slate-900">
             <div className="absolute top-8 left-8 flex items-center gap-2">
@@ -128,32 +139,34 @@ const LoginForm = () => {
                     </div>
                 )}
 
-                {/* Debug Panel */}
-                <div className="mb-4 p-3 bg-blue-50 text-blue-600 text-sm rounded-lg border border-blue-100">
-                    <div className="font-semibold mb-2">🔧 Debug Panel</div>
-                    <div className="mb-1">Backend: {API_BASE}</div>
-                    <div className="mb-1">Cookies: {document.cookie ? 'Present' : 'Empty'}</div>
-                    <div className="flex gap-2 mt-2">
-                        <button 
-                            onClick={testBackend}
-                            className="px-2 py-1 bg-blue-100 hover:bg-blue-200 rounded text-xs"
-                        >
-                            Test Backend
-                        </button>
-                        <button 
-                            onClick={testDirectLogin}
-                            className="px-2 py-1 bg-green-100 hover:bg-green-200 rounded text-xs"
-                        >
-                            Test Login
-                        </button>
-                        <button 
-                            onClick={() => console.log('Cookies:', document.cookie)}
-                            className="px-2 py-1 bg-purple-100 hover:bg-purple-200 rounded text-xs"
-                        >
-                            Check Cookies
-                        </button>
+                {/* Debug Panel - Only show useful info */}
+                {isClient && (
+                    <div className="mb-4 p-3 bg-blue-50 text-blue-600 text-sm rounded-lg border border-blue-100">
+                        <div className="font-semibold mb-2">🔧 Debug Panel (Client Only)</div>
+                        <div className="mb-1">Backend: {API_BASE}</div>
+                        <div className="mb-1">Cookies: {hasCookies ? 'Present' : 'Empty'}</div>
+                        <div className="flex gap-2 mt-2">
+                            <button 
+                                onClick={testBackend}
+                                className="px-2 py-1 bg-blue-100 hover:bg-blue-200 rounded text-xs"
+                            >
+                                Test Backend
+                            </button>
+                            <button 
+                                onClick={testDirectLogin}
+                                className="px-2 py-1 bg-green-100 hover:bg-green-200 rounded text-xs"
+                            >
+                                Test Login
+                            </button>
+                            <button 
+                                onClick={() => console.log('Cookies:', document.cookie)}
+                                className="px-2 py-1 bg-purple-100 hover:bg-purple-200 rounded text-xs"
+                            >
+                                Check Cookies
+                            </button>
+                        </div>
                     </div>
-                </div>
+                )}
 
                 <div className="space-y-6">
                     <div>
