@@ -1,14 +1,14 @@
 // frontend/app/page.tsx
-import { redirect } from 'next/navigation';
-import { cookies } from 'next/headers';
+"use client";
+import { useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 
-export default async function RootPage() {
-  const cookieStore = await cookies();
-  const token = cookieStore.get('token');
+export default function RootPage() {
+  const router = useRouter();
 
-  if (token) {
-    redirect('/student/dashboard');
-  }
+  useEffect(() => {
+    router.push('/login');
+  }, [router]);
 
-  redirect('/login');
-}   
+  return null;
+}

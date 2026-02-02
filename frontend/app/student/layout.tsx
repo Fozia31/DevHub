@@ -10,15 +10,17 @@ export default function StudentLayout({ children }: { children: React.ReactNode 
     setMounted(true);
   }, []);
 
+  // Prevent hydration mismatch errors
   if (!mounted) return null;
 
   return (
     <div className="min-h-screen bg-[#F8FAFC]">
       <Navbar />
-      <main className="pt-20 min-h-screen">
-        <div className="max-w-7xl mx-auto">
+      {/* pt-20 matches your Navbar h-20 to prevent overlap */}
+      <main className="pt-20">
+        <section className="animate-in fade-in duration-500">
           {children}
-        </div>
+        </section>
       </main>
     </div>
   );

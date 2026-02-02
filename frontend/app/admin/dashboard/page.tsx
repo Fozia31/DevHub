@@ -1,7 +1,6 @@
-// app/(auth)/login/page.tsx
+// frontend/app/admin/dashboard/page.tsx
 import React from 'react';
 import AdminDashboard from '../../../components/admin/AdminDashboard';
-// import LoginForm from '@/components/LoginForm';
 
 const AdminDashboardPage = () => {
   return <AdminDashboard />;
