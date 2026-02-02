@@ -67,8 +67,22 @@ const corsOptions = {
 // Apply CORS to all routes
 app.use(cors(corsOptions));
 
-// Handle pre-flight requests for all routes
-app.options('*', cors(corsOptions));
+// ========== FIXED: Handle pre-flight requests ==========
+app.options('*', (req, res) => {
+  const origin = req.headers.origin;
+  
+  // Check if origin is allowed
+  if (origin && allowedOrigins.includes(origin)) {
+    res.setHeader('Access-Control-Allow-Origin', origin);
+  }
+  
+  res.setHeader('Access-Control-Allow-Credentials', 'true');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, PATCH, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, Set-Cookie, Cookie, X-Requested-With, Accept');
+  res.setHeader('Access-Control-Max-Age', '86400');
+  
+  res.sendStatus(200);
+});
 
 // ========== STATIC FILES ==========
 app.use('/uploads', express.static(path.join(__dirname, 'uploads'))); 
@@ -158,7 +172,6 @@ const startServer = async () => {
       console.log(`🌐 Environment: ${process.env.NODE_ENV}`);
       console.log(`🔗 Frontend URL: ${process.env.FRONTEND_URL}`);
       
-      // 3. Run migration in production after DB is ready
       if (process.env.NODE_ENV === 'production') {
         await runMigration(); 
       }
