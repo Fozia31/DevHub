@@ -17,20 +17,15 @@ declare global {
   }
 }
 
-// Cookie configuration for production
 const getCookieOptions = () => {
   const options: any = {
     httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
-    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+    secure: true, 
+    sameSite: 'none', 
     maxAge: 24 * 60 * 60 * 1000, // 1 day
     path: '/',
   };
-  
-  // Add domain only in production for Render
-  if (process.env.NODE_ENV === 'production') {
-    options.domain = '.onrender.com'; // Notice the dot at start
-  }
+
   
   return options;
 };

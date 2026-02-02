@@ -26,20 +26,35 @@ const __dirname = dirname(__filename);
 app.use(cookieParser());
 app.use(express.json());
 
-// ========== SIMPLE CORS CONFIGURATION ==========
-const allowedOrigins = [
-  'https://dev-hub-lac-ten.vercel.app', 
-  'http://localhost:3000',               
-  'http://127.0.0.1:3000'               
-];
+// ========== CORS CONFIGURATION ==========
+const allowedOrigin = 'https://dev-hub-lac-ten.vercel.app';
 
+// CORS middleware with exposed headers
 app.use(cors({
-  origin: allowedOrigins,
+  origin: allowedOrigin,
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'Set-Cookie', 'Cookie'],
-  exposedHeaders: ['Set-Cookie']
+  allowedHeaders: ['Content-Type', 'Authorization', 'Cookie', 'Set-Cookie'],
+  exposedHeaders: ['Set-Cookie', 'Authorization'], // CRITICAL: Expose Set-Cookie
+  maxAge: 86400
 }));
+
+// Explicit CORS headers for pre-flight and response
+app.use((req, res, next) => {
+  // Set headers for all responses
+  res.header('Access-Control-Allow-Origin', allowedOrigin);
+  res.header('Access-Control-Allow-Credentials', 'true');
+  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, PATCH, OPTIONS');
+  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, Cookie, Set-Cookie');
+  res.header('Access-Control-Expose-Headers', 'Set-Cookie, Authorization'); // EXPOSE Set-Cookie
+  
+  // Handle pre-flight requests
+  if (req.method === 'OPTIONS') {
+    return res.status(200).end();
+  }
+  
+  next();
+});
 
 // ========== STATIC FILES ==========
 app.use('/uploads', express.static(path.join(__dirname, 'uploads'))); 
@@ -58,20 +73,18 @@ app.get('/health', (req, res) => res.status(200).json({
   environment: process.env.NODE_ENV
 }));
 
-// Test cookie endpoint
+// Test cookie endpoint - FIXED for cross-origin
 app.get('/api/test-cookie', (req, res) => {
   const cookieOptions = {
     httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
-    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+    secure: true, // Always true in production
+    sameSite: 'none', // Must be 'none' for cross-origin
     maxAge: 24 * 60 * 60 * 1000,
     path: '/',
   };
   
-  // Set domain only in production for Render
-  if (process.env.NODE_ENV === 'production') {
-    cookieOptions.domain = '.onrender.com';
-  }
+  // Remove domain setting for cross-origin cookies
+  // cookieOptions.domain = '.onrender.com'; // Comment out or remove
   
   res.cookie('test_cookie', 'cookie_is_working', cookieOptions);
   
@@ -79,7 +92,20 @@ app.get('/api/test-cookie', (req, res) => {
     message: 'Test cookie set successfully',
     cookies_received: req.cookies,
     cookie_options: cookieOptions,
-    timestamp: new Date().toISOString()
+    timestamp: new Date().toISOString(),
+    environment: process.env.NODE_ENV
+  });
+});
+
+// Debug endpoint to check headers
+app.get('/api/debug-headers', (req, res) => {
+  console.log('Request headers:', req.headers);
+  console.log('Request cookies:', req.cookies);
+  
+  res.json({
+    requestHeaders: req.headers,
+    requestCookies: req.cookies,
+    serverTime: new Date().toISOString()
   });
 });
 
@@ -128,6 +154,7 @@ const startServer = async () => {
       console.log(`🚀 Server running on port ${PORT}`);
       console.log(`🌐 Environment: ${process.env.NODE_ENV}`);
       console.log(`🔗 Frontend URL: ${process.env.FRONTEND_URL}`);
+      console.log(`🔧 CORS configured for: ${allowedOrigin}`);
       
       if (process.env.NODE_ENV === 'production') {
         await runMigration(); 

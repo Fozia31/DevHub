@@ -1,5 +1,5 @@
 'use client';
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Mail, Lock, Eye, ArrowRight, Loader2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
@@ -14,19 +14,20 @@ const LoginForm = () => {
     const [showPassword, setShowPassword] = useState(false);
     const router = useRouter();
 
+    // Debug on mount
+    useEffect(() => {
+        console.log('🔧 Login Form Mounted');
+        console.log('API Base:', API_BASE);
+        console.log('Current cookies:', document.cookie);
+        console.log('Has localStorage token?', localStorage.getItem('auth_token') ? 'Yes' : 'No');
+    }, []);
+
     const handleLogin = async (e: React.MouseEvent) => {
         e.preventDefault();
-        console.log('Login button clicked!');
-        
-        if (!email || !password) {
-            setError('Please enter email and password');
-            return;
-        }
-        
         setError('');
         setIsLoading(true);
-
-        console.log('Sending to:', `${API_BASE}/api/auth/login`);
+        
+        console.log('🚀 Login attempt with:', { email });
 
         try {
             const response = await fetch(`${API_BASE}/api/auth/login`, {
@@ -38,19 +39,36 @@ const LoginForm = () => {
                 body: JSON.stringify({ email, password })
             });
 
-            console.log('Response status:', response.status);
+            console.log('📥 Response status:', response.status);
             
             const data = await response.json();
-            console.log('Response data:', data);
+            console.log('📥 Response data:', data);
             
             if (response.ok) {
-                console.log('Login successful!');
-                const role = data.user?.role || 'student';
+                console.log('✅ Login successful!');
+                
+                // Store in localStorage as backup
+                if (data.token) {
+                    localStorage.setItem('auth_token', data.token);
+                    localStorage.setItem('user', JSON.stringify(data.user));
+                    console.log('💾 Token saved to localStorage:', data.token.substring(0, 20) + '...');
+                }
+                
+                // Try to set cookie manually if not set by server
+                if (data.token && !document.cookie.includes('token')) {
+                    document.cookie = `token=${data.token}; path=/; max-age=86400; secure; samesite=none`;
+                    console.log('🔧 Manually set cookie');
+                }
                 
                 // Redirect based on role
+                const role = data.user?.role || 'student';
+                console.log('👤 User role:', role);
+                
                 if (role === 'admin') {
+                    console.log('➡️ Redirecting to admin dashboard');
                     window.location.href = '/admin/dashboard';
                 } else {
+                    console.log('➡️ Redirecting to student dashboard');
                     window.location.href = '/student/dashboard';
                 }
             } else {
@@ -58,10 +76,30 @@ const LoginForm = () => {
                 setIsLoading(false);
             }
         } catch (err: any) {
-            console.error('Login error:', err);
+            console.error('❌ Login error:', err);
             setError('Network error. Please try again.');
             setIsLoading(false);
         }
+    };
+
+    // Test backend connection
+    const testBackend = async () => {
+        try {
+            console.log('🔍 Testing backend connection...');
+            const response = await fetch(`${API_BASE}/health`);
+            const data = await response.text();
+            console.log('✅ Backend health:', data);
+            alert(`Backend is healthy: ${data}`);
+        } catch (err) {
+            console.error('❌ Backend test failed:', err);
+            alert(`Backend test failed. Check if ${API_BASE} is accessible.`);
+        }
+    };
+
+    // Test direct login (bypass UI)
+    const testDirectLogin = async () => {
+        console.log('🧪 Testing direct login...');
+        await handleLogin({ preventDefault: () => {} } as React.MouseEvent);
     };
 
     return (
@@ -86,9 +124,36 @@ const LoginForm = () => {
 
                 {error && (
                     <div className="mb-4 p-3 bg-red-50 text-red-600 text-sm rounded-lg border border-red-100">
-                        {error}
+                        <strong>Error:</strong> {error}
                     </div>
                 )}
+
+                {/* Debug Panel */}
+                <div className="mb-4 p-3 bg-blue-50 text-blue-600 text-sm rounded-lg border border-blue-100">
+                    <div className="font-semibold mb-2">🔧 Debug Panel</div>
+                    <div className="mb-1">Backend: {API_BASE}</div>
+                    <div className="mb-1">Cookies: {document.cookie ? 'Present' : 'Empty'}</div>
+                    <div className="flex gap-2 mt-2">
+                        <button 
+                            onClick={testBackend}
+                            className="px-2 py-1 bg-blue-100 hover:bg-blue-200 rounded text-xs"
+                        >
+                            Test Backend
+                        </button>
+                        <button 
+                            onClick={testDirectLogin}
+                            className="px-2 py-1 bg-green-100 hover:bg-green-200 rounded text-xs"
+                        >
+                            Test Login
+                        </button>
+                        <button 
+                            onClick={() => console.log('Cookies:', document.cookie)}
+                            className="px-2 py-1 bg-purple-100 hover:bg-purple-200 rounded text-xs"
+                        >
+                            Check Cookies
+                        </button>
+                    </div>
+                </div>
 
                 <div className="space-y-6">
                     <div>
@@ -163,15 +228,12 @@ const LoginForm = () => {
                     </p>
                 </div>
 
+                {/* Test credentials */}
                 <div className="mt-4 p-3 bg-gray-50 rounded-lg text-xs text-gray-500">
-                    <div className="font-semibold mb-1">Debug Info:</div>
-                    <div>Backend URL: {API_BASE}</div>
-                    <button 
-                        onClick={() => console.log('Test click')}
-                        className="mt-1 px-2 py-1 bg-blue-100 text-blue-600 rounded text-xs"
-                    >
-                        Click to test
-                    </button>
+                    <div className="font-semibold mb-1">Test Credentials:</div>
+                    <div>Email: test@gmail.com</div>
+                    <div>Password: password123</div>
+                    <div className="mt-1 text-blue-500">Role: Admin</div>
                 </div>
             </div>
         </div>
