@@ -16,6 +16,9 @@ import taskAdminRoutes from './routes/v1/admin.task.routes.js';
 import adminResourceRoutes from './routes/v1/admin.resource.routes.js';
 dotenv.config();
 const app = express();
+// When running behind a proxy (e.g. Render, Heroku), enable trust proxy
+// so that Express correctly detects secure connections and related behaviors.
+app.set('trust proxy', 1);
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
 // 1. Core Middleware
@@ -38,6 +41,16 @@ app.use(cors({
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'Cookie']
 }));
+
+// Optional debug logging for auth routes to diagnose cookie/CORS issues in production.
+if (process.env.DEBUG_COOKIE_LOG === 'true') {
+  app.use((req, _res, next) => {
+    if (req.path.startsWith('/api/auth')) {
+      console.log('CORS/COOKIE DEBUG ->', req.method, req.path, 'Origin:', req.headers.origin, 'Host:', req.headers.host);
+    }
+    next();
+  });
+}
 
 // 3. Static Files & Routes
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));

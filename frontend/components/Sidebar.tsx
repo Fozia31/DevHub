@@ -12,13 +12,16 @@ import axios from 'axios';
 const Sidebar = ({ role = "admin" }) => {
   const pathname = usePathname();
 
-  // 1. Get the correct URL from Environment Variables
-  const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
+  // Build the API base URL robustly (accept env with or without trailing `/api`)
+  const rawApi = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+  const API_BASE = rawApi.replace(/\/$/, '');
 
   const handleLogout = async () => {
     try {
       // 2. Use the dynamic API_BASE instead of localhost
-      await axios.post(`${API_BASE}/auth/logout`, {}, { withCredentials: true });
+      const logoutUrl = `${API_BASE}/api/auth/logout`;
+      console.debug('Logout URL:', logoutUrl);
+      await axios.post(logoutUrl, {}, { withCredentials: true });
       window.location.href = '/login';
     } catch (err) {
       console.error("Logout failed", err);

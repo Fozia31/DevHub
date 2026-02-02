@@ -18,16 +18,24 @@ declare global {
 }
 
 const getCookieOptions = () => {
-  const options: any = {
-    httpOnly: true,
-    secure: true, 
-    sameSite: 'none', 
-    maxAge: 24 * 60 * 60 * 1000, // 1 day
-    path: '/',
-  };
+    const isProd = process.env.NODE_ENV === 'production';
 
-  
-  return options;
+    const options: any = {
+        httpOnly: true,
+        secure: isProd, 
+        sameSite: isProd ? 'none' : 'lax',
+        maxAge: 24 * 60 * 60 * 1000, // 1 day
+        path: '/',
+    };
+
+    // In production, only set cookie domain when explicitly configured.
+    // Setting domain implicitly (derived from FRONTEND_URL) can cause mismatches
+    // and rejected cookies. Provide `COOKIE_DOMAIN` like `.example.com` when needed.
+    if (isProd && process.env.COOKIE_DOMAIN) {
+        options.domain = process.env.COOKIE_DOMAIN;
+    }
+
+    return options;
 };
 
 export const register = async (req: Request, res: Response): Promise<void> => {
