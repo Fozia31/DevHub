@@ -5,17 +5,16 @@ export function middleware(request: NextRequest) {
   const token = request.cookies.get('token')?.value;
   const { pathname } = request.nextUrl;
 
-  // 1. Protect internal pages: If no token, go to login
+  // 1. Protect internal pages: If no token, redirect to login
   if (!token && (pathname.startsWith('/student') || pathname.startsWith('/admin'))) {
     return NextResponse.redirect(new URL('/login', request.url));
   }
 
   if (token) {
     try {
-      // Decode JWT Payload without using Node.js 'Buffer'
+      // --- EDGE-SAFE JWT DECODING ---
+      // We cannot use Buffer.from in Vercel Middleware.
       const payloadBase64 = token.split('.')[1];
-      
-      // Standard Base64 decoding for Edge Runtime
       const base64 = payloadBase64.replace(/-/g, '+').replace(/_/g, '/');
       const jsonPayload = decodeURIComponent(
         atob(base64)
@@ -35,14 +34,13 @@ export function middleware(request: NextRequest) {
         return NextResponse.redirect(new URL('/student/dashboard', request.url));
       }
 
-      // 3. Authenticated Redirect: If logged in, don't show Login/Register
+      // 3. Authenticated Redirect: If logged in, move away from Login/Register
       if (pathname === '/login' || pathname === '/register') {
         const dashboard = userRole === 'admin' ? '/admin/dashboard' : '/student/dashboard';
         return NextResponse.redirect(new URL(dashboard, request.url));
       }
     } catch (error) {
-      // If token is malformed or decoding fails, clear cookie and send to login
-      console.error("Middleware Auth Error:", error);
+      // If decoding fails, the token is likely corrupt. Clear it and go to login.
       const response = NextResponse.redirect(new URL('/login', request.url));
       response.cookies.delete('token');
       return response;
