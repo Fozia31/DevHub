@@ -54,7 +54,6 @@ const StudentTaskView = () => {
 
   const handleUpdate = async (taskId: string, newValue: string) => {
     try {
-      // Optimistic UI update
       setTasks((prev) => prev.map((t) => t._id === taskId ? { ...t, status: newValue as any } : t));
       
       await axios.patch(`${API_BASE}/api/tasks/${taskId}/update`, {
@@ -65,13 +64,12 @@ const StudentTaskView = () => {
       setStatsData(statsRes.data);
     } catch (error) {
       alert("Failed to update status");
-      fetchData(); // Rollback on error
+      fetchData(); 
     }
   };
 
   const openTaskContent = (content: string) => {
     if (!content) return alert("No resources available for this task.");
-    // If content is a URL, open it. If it's a filename, point to backend uploads.
     const finalUrl = content.startsWith('http') 
       ? content 
       : `${API_BASE.replace('/api', '')}/uploads/${content}`;
@@ -95,7 +93,6 @@ const StudentTaskView = () => {
 
       <main className="max-w-[1200px] mx-auto p-8 pt-4 space-y-10">
         
-        {/* HEADER SECTION */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
           <div>
             <h1 className="text-4xl font-black text-slate-900 mb-2 tracking-tight">Task Roadmap</h1>
@@ -125,7 +122,6 @@ const StudentTaskView = () => {
           </div>
         </div>
 
-        {/* STATS CARDS */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           {dynamicStats.map((stat, idx) => (
             <div key={idx} className="bg-white p-6 rounded-[2rem] border border-slate-100 shadow-sm flex items-center gap-5">
@@ -138,7 +134,6 @@ const StudentTaskView = () => {
           ))}
         </div>
 
-        {/* TASKS TABLE */}
         <div className="bg-white rounded-[2.5rem] border border-slate-200 shadow-sm overflow-hidden">
           {loading ? (
             <div className="py-24 flex flex-col items-center gap-4">

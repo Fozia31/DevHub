@@ -42,7 +42,6 @@ export const register = async (req: Request, res: Response): Promise<void> => {
     try {
         const { name, email, password, role, github, leetcode } = req.body;
         
-        // Validate required fields
         if (!name || !email || !password) {
             res.status(400).json({ 
                 message: 'Name, email, and password are required' 

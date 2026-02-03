@@ -7,7 +7,6 @@ import {
   Search, ExternalLink, Loader2 
 } from 'lucide-react';
 
-// --- INTERFACES FOR TYPE SAFETY ---
 interface Resource {
   _id: string;
   title: string;
@@ -22,7 +21,6 @@ const StudentResources = () => {
   const [activeTab, setActiveTab] = useState('All Types');
   const [loading, setLoading] = useState(true);
 
-  // Production API Base URL
   const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
 
   const fetchResources = async () => {
@@ -39,7 +37,6 @@ const StudentResources = () => {
 
   useEffect(() => { fetchResources(); }, []);
 
-  // HELPER: Extract YouTube Thumbnail
   const getResourceCover = (res: Resource) => {
     if (res.type === 'video') {
       const regExp = /^.*((youtu.be\/)|(v\/)|(\/u\/\w\/)|(embed\/)|(watch\?))\??v?=?([^#&?]*).*/;
@@ -61,7 +58,7 @@ const StudentResources = () => {
     );
 
     try {
-      await axios.patch(`${API_BASE}/resources/${id}/status`, 
+      await axios.patch(`${API_BASE}/resources/status`, 
         { status: newStatus },
         { withCredentials: true }
       );
@@ -92,7 +89,6 @@ const StudentResources = () => {
 
   return (
     <div className="min-h-screen bg-[#FDFDFF] p-6 lg:p-12">
-      {/* HEADER & PROGRESS */}
       <div className="max-w-7xl mx-auto mb-12 flex flex-col md:flex-row justify-between items-end gap-6">
         <div className="space-y-2">
           <h1 className="text-4xl font-black text-slate-900">Learning Resources</h1>
@@ -109,7 +105,6 @@ const StudentResources = () => {
         </div>
       </div>
 
-      {/* FILTERS */}
       <div className="max-w-7xl mx-auto mb-10 flex flex-col md:flex-row justify-between gap-6">
         <div className="flex gap-2 p-1.5 bg-slate-100 rounded-2xl w-fit">
           {['All Types', 'Videos', 'PDFs', 'Links'].map((tab) => (
@@ -122,7 +117,6 @@ const StudentResources = () => {
         </div>
       </div>
 
-      {/* GRID */}
       <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
         <AnimatePresence mode='popLayout'>
           {filteredResources.map((res) => (
@@ -164,7 +158,6 @@ const StudentResources = () => {
   );
 };
 
-// --- REUSABLE SUB-COMPONENT ---
 interface StatusBtnProps {
   icon: React.ReactNode;
   label: string;

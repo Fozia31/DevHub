@@ -14,6 +14,7 @@ import connectDB from './config/db.js';
 import Res from './routes/v1/resource.routes.js';
 import taskAdminRoutes from './routes/v1/admin.task.routes.js';
 import adminResourceRoutes from './routes/v1/admin.resource.routes.js';
+import { createTask } from './controllers/admintask.controller.js';
 dotenv.config();
 const app = express();
 // When running behind a proxy (e.g. Render, Heroku), enable trust proxy
@@ -52,14 +53,16 @@ if (process.env.DEBUG_COOKIE_LOG === 'true') {
   });
 }
 
-// 3. Static Files & Routes
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 app.use('/api/auth', authRoutes);
 app.use('/api/tasks', taskRoutes);
 app.use('/api/admin', adminRoutes);
-app.use('/api/resources', Res); // Assuming resources are handled in adminRoutes
-app.use('/api/admin/tasks', taskAdminRoutes); // Admin-specific task routes
-app.use('/api/admin/resources', adminResourceRoutes); // Admin-specific resource routes
+app.use('/api/resources', Res); 
+app.use('/api/admin/tasks', taskAdminRoutes); 
+app.use('/api/admin/tasks/add', createTask); 
+
+app.use
+app.use('/api/admin/resources', adminResourceRoutes); 
 
 // 4. Health Check
 app.get('/health', (req, res) => res.status(200).json({ status: 'healthy' }));

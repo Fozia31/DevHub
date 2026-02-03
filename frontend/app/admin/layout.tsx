@@ -15,7 +15,11 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   return (
     <div className="flex min-h-screen bg-[#FDFDFF]">
       <Sidebar role="admin" />
-      <main className="flex-1 ml-64 min-h-screen">
+      
+      {/* CHANGE: Removed 'ml-64' and replaced with 'lg:ml-64'.
+          Added 'w-full' and 'overflow-x-hidden' to ensure no horizontal scrolling.
+      */}
+      <main className="flex-1 lg:ml-64 min-h-screen w-full overflow-x-hidden transition-all duration-300">
         {children}
       </main>
     </div>

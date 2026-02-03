@@ -28,16 +28,12 @@ const LoginForm = () => {
             const data = await response.json();
             
             if (response.ok) {
-                // Client-side only operations
                 if (typeof window !== 'undefined') {
                     if (data.token) {
                         localStorage.setItem('auth_token', data.token);
                         localStorage.setItem('user', JSON.stringify(data.user));
                     }
 
-                    // Before redirecting, verify the server accepted the cookie by
-                    // calling a protected endpoint with credentials included. This
-                    // avoids redirecting when deployed backends reject Set-Cookie.
                     const verifyAuth = async (retries = 3, delay = 500) => {
                         const role = data.user?.role || 'student';
                         const target = role === 'admin' ? '/admin/dashboard' : '/student/dashboard';
@@ -52,18 +48,12 @@ const LoginForm = () => {
                                     window.location.href = target;
                                     return;
                                 }
-                            } catch (e) {
-                                // ignore and retry
-                            }
+                            } catch (e) {}
                             await new Promise(r => setTimeout(r, delay));
                         }
-
-                        // If verification failed, show an error so the user knows
-                        // the login didn't persist server-side. Keep them on page.
-                        setError('Login succeeded but auth cookie was not set by the server. Check CORS/cookie settings.');
+                        setError('Login succeeded but auth cookie was not set. Check CORS.');
                         setIsLoading(false);
                     };
-
                     verifyAuth();
                 }
             } else {
@@ -77,9 +67,9 @@ const LoginForm = () => {
     };
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 flex flex-col justify-center items-center p-4">
-            {/* Header */}
-            <div className="absolute top-6 left-6 flex items-center gap-2">
+        <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 flex flex-col justify-center items-center p-4 sm:p-6 lg:p-8">
+            
+            <div className="mb-8 md:absolute md:top-6 md:left-6 flex items-center gap-2 self-start md:self-auto">
                 <div className="bg-gradient-to-r from-blue-600 to-indigo-600 p-2 rounded-lg shadow-md">
                     <code className="text-white font-bold text-sm">{"</>"}</code>
                 </div>
@@ -89,38 +79,25 @@ const LoginForm = () => {
             </div>
 
             <div className="w-full max-w-md">
-                {/* Login Card */}
                 <div className="bg-white rounded-2xl shadow-2xl overflow-hidden border border-gray-100">
-                    {/* Card Header with Gradient */}
-                    <div className="bg-gradient-to-r from-blue-600 to-indigo-600 p-6 text-center">
-                        <div className="w-16 h-16 bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center mx-auto mb-4">
-                            <Lock className="text-white" size={28} />
+                    <div className="bg-gradient-to-r from-blue-600 to-indigo-600 p-6 md:p-8 text-center">
+                        <div className="w-14 h-14 md:w-16 md:h-16 bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center mx-auto mb-4">
+                            <Lock className="text-white" size={24} />
                         </div>
-                        <h1 className="text-2xl font-bold text-white">Welcome Back</h1>
-                        <p className="text-blue-100 mt-1 text-sm">
+                        <h1 className="text-xl md:text-2xl font-bold text-white">Welcome Back</h1>
+                        <p className="text-blue-100 mt-1 text-xs md:text-sm">
                             Sign in to access your developer dashboard
                         </p>
                     </div>
 
-                    {/* Card Content */}
-                    <div className="p-8">
+                    <div className="p-6 md:p-8">
                         {error && (
                             <div className="mb-6 p-4 bg-red-50 border-l-4 border-red-500 rounded-r">
-                                <div className="flex items-center">
-                                    <div className="flex-shrink-0">
-                                        <div className="w-5 h-5 bg-red-500 rounded-full flex items-center justify-center">
-                                            <span className="text-white text-xs">!</span>
-                                        </div>
-                                    </div>
-                                    <div className="ml-3">
-                                        <p className="text-sm text-red-700 font-medium">{error}</p>
-                                    </div>
-                                </div>
+                                <p className="text-sm text-red-700 font-medium">{error}</p>
                             </div>
                         )}
 
-                        <form onSubmit={handleLogin} className="space-y-5">
-                            {/* Email Field */}
+                        <form onSubmit={handleLogin} className="space-y-4 md:space-y-5">
                             <div>
                                 <label className="block text-sm font-semibold text-gray-700 mb-2">
                                     Email Address
@@ -135,18 +112,17 @@ const LoginForm = () => {
                                         value={email}
                                         onChange={(e) => setEmail(e.target.value)}
                                         placeholder="developer@devhub.com"
-                                        className="w-full pl-10 pr-4 py-3.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all bg-gray-50 focus:bg-white"
+                                        className="w-full pl-10 pr-4 py-3 md:py-3.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all bg-gray-50 focus:bg-white"
                                         disabled={isLoading}
                                     />
                                 </div>
                             </div>
 
-                            {/* Password Field */}
                             <div>
                                 <div className="flex justify-between mb-2">
                                     <label className="text-sm font-semibold text-gray-700">Password</label>
                                     <a href="#" className="text-xs font-semibold text-blue-600 hover:text-blue-700 transition-colors">
-                                        Forgot password?
+                                        Forgot?
                                     </a>
                                 </div>
                                 <div className="relative group">
@@ -159,7 +135,7 @@ const LoginForm = () => {
                                         value={password}
                                         onChange={(e) => setPassword(e.target.value)}
                                         placeholder="Enter your password"
-                                        className="w-full pl-10 pr-12 py-3.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all bg-gray-50 focus:bg-white"
+                                        className="w-full pl-10 pr-12 py-3 md:py-3.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all bg-gray-50 focus:bg-white"
                                         disabled={isLoading}
                                     />
                                     <button
@@ -173,69 +149,55 @@ const LoginForm = () => {
                                 </div>
                             </div>
 
-                            {/* Login Button */}
                             <button
                                 type="submit"
                                 disabled={isLoading}
-                                className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-semibold py-4 px-4 rounded-xl flex items-center justify-center gap-3 transition-all shadow-lg hover:shadow-xl disabled:opacity-70 disabled:cursor-not-allowed transform hover:-translate-y-0.5 active:translate-y-0"
+                                className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-semibold py-3.5 md:py-4 px-4 rounded-xl flex items-center justify-center gap-3 transition-all shadow-lg hover:shadow-xl disabled:opacity-70 transform active:scale-95"
                             >
                                 {isLoading ? (
-                                    <>
-                                        <Loader2 className="h-5 w-5 animate-spin" />
-                                        <span>Signing in...</span>
-                                    </>
+                                    <Loader2 className="h-5 w-5 animate-spin" />
                                 ) : (
                                     <>
-                                        <span>Continue to Dashboard</span>
+                                        <span>Sign In</span>
                                         <ArrowRight className="h-5 w-5" />
                                     </>
                                 )}
                             </button>
                         </form>
 
-                        {/* Divider */}
-                        <div className="mt-8 pt-6 border-t border-gray-200">
-                            <p className="text-center text-sm text-gray-600">
-                                Don't have an account?{' '}
-                                <Link 
-                                    href="/register" 
-                                    className="font-semibold text-blue-600 hover:text-blue-700 transition-colors"
-                                >
+                        <div className="mt-8 pt-6 border-t border-gray-200 text-center">
+                            <p className="text-sm text-gray-600">
+                                New here?{' '}
+                                <Link href="/register" className="font-semibold text-blue-600 hover:text-blue-700 transition-colors">
                                     Get started
                                 </Link>
                             </p>
                         </div>
 
-                        {/* Test Credentials */}
                         <div className="mt-6 p-4 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl border border-blue-100">
-                            <div className="text-xs font-semibold text-blue-800 mb-2 flex items-center gap-1">
+                            <div className="text-[10px] md:text-xs font-semibold text-blue-800 mb-2 flex items-center gap-1">
                                 <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
                                 Test Credentials
                             </div>
-                            <div className="grid grid-cols-2 gap-2 text-xs">
-                                <div className="space-y-1">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-2 text-[11px] md:text-xs">
+                                <div className="overflow-hidden">
                                     <div className="text-gray-600">Email:</div>
-                                    <div className="font-mono text-gray-900">test@gmail.com</div>
+                                    <div className="font-mono text-gray-900 truncate">test@gmail.com</div>
                                 </div>
-                                <div className="space-y-1">
+                                <div className="overflow-hidden">
                                     <div className="text-gray-600">Password:</div>
                                     <div className="font-mono text-gray-900">password123</div>
                                 </div>
-                            </div>
-                            <div className="mt-2 text-xs text-blue-700 font-medium">
-                                Role: <span className="bg-blue-100 px-2 py-1 rounded">Admin</span>
                             </div>
                         </div>
                     </div>
                 </div>
 
                 {/* Footer Note */}
-                <div className="mt-6 text-center">
-                    <p className="text-xs text-gray-500">
+                <div className="mt-6 text-center px-4">
+                    <p className="text-[10px] md:text-xs text-gray-500">
                         By continuing, you agree to our{' '}
-                        <a href="#" className="text-gray-700 hover:text-gray-900">Terms</a>{' '}
-                        and{' '}
-                        <a href="#" className="text-gray-700 hover:text-gray-900">Privacy Policy</a>
+                        <a href="#" className="underline">Terms</a> and <a href="#" className="underline">Privacy</a>
                     </p>
                 </div>
             </div>

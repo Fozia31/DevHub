@@ -21,7 +21,6 @@ const storage = multer.diskStorage({
 });
 const upload = multer({ storage });
 
-// All routes here are for Admin only
 router.use(protect, authorize('admin'));
 
 router.get('/', getTasks);

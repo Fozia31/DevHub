@@ -27,18 +27,11 @@ const TaskManagement = () => {
   const [activeTab, setActiveTab] = useState('All Tasks');
   const [contentType, setContentType] = useState('link'); 
 
-  // PRODUCTION API CONFIG
   const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
   const BACKEND_ROOT = API_BASE.replace('/api', '');
 
   const [formData, setFormData] = useState({
-    title: '',
-    module: '',
-    status: 'Active',
-    startDate: '',
-    endDate: '',
-    link: '',
-    file: null as File | null,
+    title: '', module: '', status: 'Active', startDate: '', endDate: '', link: '', file: null as File | null,
   });
 
   const fetchTasks = async () => {
@@ -53,15 +46,10 @@ const TaskManagement = () => {
     }
   };
 
-  useEffect(() => { 
-    fetchTasks(); 
-  }, []);
+  useEffect(() => { fetchTasks(); }, []);
 
   const handleOpenContent = (task: Task) => {
-    let url = task.type === 'link' 
-      ? task.content 
-      : `${BACKEND_ROOT}/uploads/${task.content}`;
-    
+    let url = task.type === 'link' ? task.content : `${BACKEND_ROOT}/uploads/${task.content}`;
     if (task.type === 'link' && !url.startsWith('http')) {
         url = 'https://' + url;
     }
@@ -127,7 +115,7 @@ const TaskManagement = () => {
 
   const handleDelete = async (e: React.MouseEvent, id: string) => {
     e.stopPropagation();
-    if (!window.confirm("Are you sure you want to delete this task?")) return;
+    if (!window.confirm("Are you sure?")) return;
     try {
       await axios.delete(`${API_BASE}/admin/tasks/${id}`, { withCredentials: true });
       fetchTasks();
@@ -143,37 +131,40 @@ const TaskManagement = () => {
 
   return (
     <div className="flex min-h-screen bg-slate-50 text-slate-900">
-      <main className="flex-1 overflow-y-auto">
-        <header className="bg-white border-b border-gray-200 px-8 py-4 flex items-center justify-between sticky top-0 z-10">
-          <h1 className="text-xl font-bold text-gray-800">Task Management</h1>
-          <div className="w-10 h-10 bg-indigo-100 rounded-full border-2 border-white flex items-center justify-center overflow-hidden">
+      <main className="flex-1 overflow-x-hidden">
+        {/* Responsive Header */}
+        <header className="bg-white border-b border-gray-200 px-4 md:px-8 py-4 flex items-center justify-between sticky top-0 z-30 shadow-sm">
+          <h1 className="text-lg md:text-xl font-bold text-gray-800 truncate pr-2">Task Management</h1>
+          <div className="shrink-0 w-8 h-8 md:w-10 md:h-10 bg-indigo-100 rounded-full border-2 border-white flex items-center justify-center overflow-hidden">
              <img src={`https://ui-avatars.com/api/?name=Admin&background=6366f1&color=fff`} alt="Admin" />
           </div>
         </header>
 
-        <div className="p-8 max-w-7xl mx-auto space-y-8">
-          <div className="flex justify-between items-center">
+        <div className="p-4 md:p-8 max-w-7xl mx-auto space-y-6 md:space-y-8">
+          {/* Banner Section */}
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
             <div>
-              <h2 className="text-2xl font-black text-slate-900 tracking-tight">Curriculum Tasks</h2>
-              <p className="text-slate-500 font-medium text-sm">Design and manage learning modules.</p>
+              <h2 className="text-xl md:text-2xl font-black text-slate-900 tracking-tight">Curriculum Tasks</h2>
+              <p className="text-slate-500 font-medium text-xs md:text-sm">Design and manage learning modules.</p>
             </div>
             <motion.button 
-              whileHover={{ y: -2 }}
+              whileTap={{ scale: 0.95 }}
               onClick={() => setShowModal(true)} 
-              className="flex items-center gap-2 px-6 py-2.5 bg-indigo-600 text-white rounded-xl text-sm font-bold shadow-lg shadow-indigo-200"
+              className="w-full sm:w-auto flex items-center justify-center gap-2 px-6 py-3 bg-indigo-600 text-white rounded-xl text-sm font-bold shadow-lg shadow-indigo-200"
             >
               <Plus size={18} /> Add Task
             </motion.button>
           </div>
 
-          <div className="bg-white rounded-[2rem] border border-slate-200 shadow-sm overflow-hidden">
-            <div className="p-6 border-b border-slate-100 flex justify-between items-center">
-               <div className="flex gap-2 p-1 bg-slate-100 rounded-xl w-fit">
+          <div className="bg-white rounded-2xl md:rounded-[2rem] border border-slate-200 shadow-sm overflow-hidden">
+            {/* Filter Tabs - Scrollable on mobile */}
+            <div className="p-4 md:p-6 border-b border-slate-100">
+               <div className="flex gap-2 p-1 bg-slate-100 rounded-xl w-full sm:w-fit overflow-x-auto no-scrollbar">
                 {['All Tasks', 'Active', 'Draft'].map((tab) => (
                   <button 
                     key={tab} 
                     onClick={() => setActiveTab(tab)} 
-                    className={`px-5 py-1.5 rounded-lg text-xs font-bold transition-all ${activeTab === tab ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+                    className={`flex-1 sm:flex-none whitespace-nowrap px-5 py-2 rounded-lg text-xs font-bold transition-all ${activeTab === tab ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
                   >
                     {tab}
                   </button>
@@ -181,98 +172,110 @@ const TaskManagement = () => {
               </div>
             </div>
 
-            <div className="min-h-[300px]">
-              {loading ? (
-                <div className="flex flex-col items-center justify-center py-20 gap-3">
-                    <Loader2 className="animate-spin text-indigo-600" size={40} />
-                    <p className="text-slate-400 font-bold text-xs uppercase tracking-widest">Updating Task List...</p>
-                </div>
-              ) : (
-                <table className="w-full text-left">
-                  <thead>
-                    <tr className="bg-slate-50/50 text-slate-400 text-[10px] font-black uppercase tracking-widest">
-                      <th className="px-8 py-4">Task & Module</th>
-                      <th className="px-8 py-4">Timeline</th>
-                      <th className="px-8 py-4">Type</th>
-                      <th className="px-8 py-4 text-right">Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-100">
-                    {filteredTasks.length > 0 ? filteredTasks.map((task) => (
-                      <tr 
-                        key={task._id} 
-                        onClick={() => handleOpenContent(task)}
-                        className="group hover:bg-indigo-50/50 cursor-pointer transition-colors"
-                      >
-                        <td className="px-8 py-6">
-                          <div className="font-bold text-slate-800 text-sm group-hover:text-indigo-600 flex items-center gap-2">
-                            {task.title} <ExternalLink size={12} className="opacity-0 group-hover:opacity-100 transition-opacity" />
-                          </div>
-                          <div className="text-slate-400 text-xs font-medium">{task.module}</div>
-                        </td>
-                        <td className="px-8 py-6">
-                          <div className="flex items-center gap-2 text-xs font-bold text-slate-600">
-                            <Calendar size={14} className="text-indigo-400" />
-                            {new Date(task.startDate).toLocaleDateString()} — {new Date(task.endDate).toLocaleDateString()}
-                          </div>
-                        </td>
-                        <td className="px-8 py-6">
-                            <span className={`text-[10px] font-black uppercase px-2 py-1 rounded-md flex items-center gap-1.5 w-fit ${
-                               task.type === 'video' ? 'bg-blue-100 text-blue-700' : 
-                               task.type === 'pdf' ? 'bg-red-100 text-red-700' : 'bg-slate-100 text-slate-700'
-                            }`}>
-                               {task.type === 'video' ? <Video size={10}/> : task.type === 'pdf' ? <FileText size={10}/> : <LinkIcon size={10}/>}
-                               {task.type}
-                            </span>
-                        </td>
-                        <td className="px-8 py-6 text-right">
-                          <div className="flex justify-end gap-2 items-center">
-                            <button onClick={(e) => handleEditClick(e, task)} className="p-2 text-slate-300 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors">
-                              <Edit size={16}/>
-                            </button>
-                            <button onClick={(e) => handleDelete(e, task._id)} className="p-2 text-slate-300 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors">
-                              <Trash2 size={16}/>
-                            </button>
-                          </div>
-                        </td>
+            {/* Table with Horizontal Scroll */}
+            <div className="overflow-x-auto">
+              <div className="inline-block min-w-full align-middle">
+                {loading ? (
+                  <div className="flex flex-col items-center justify-center py-20 gap-3">
+                      <Loader2 className="animate-spin text-indigo-600" size={32} />
+                      <p className="text-slate-400 font-bold text-[10px] uppercase tracking-widest">Updating Task List...</p>
+                  </div>
+                ) : (
+                  <table className="min-w-full text-left">
+                    <thead>
+                      <tr className="bg-slate-50/50 text-slate-400 text-[10px] font-black uppercase tracking-widest">
+                        <th className="px-6 md:px-8 py-4">Task & Module</th>
+                        <th className="px-6 md:px-8 py-4 whitespace-nowrap">Timeline</th>
+                        <th className="px-6 md:px-8 py-4">Type</th>
+                        <th className="px-6 md:px-8 py-4 text-right">Actions</th>
                       </tr>
-                    )) : (
-                        <tr>
-                            <td colSpan={4} className="py-20 text-center text-slate-400 font-bold text-sm">No tasks found in this category.</td>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100">
+                      {filteredTasks.length > 0 ? filteredTasks.map((task) => (
+                        <tr 
+                          key={task._id} 
+                          onClick={() => handleOpenContent(task)}
+                          className="group hover:bg-indigo-50/50 cursor-pointer transition-colors"
+                        >
+                          <td className="px-6 md:px-8 py-4 md:py-6">
+                            <div className="font-bold text-slate-800 text-sm group-hover:text-indigo-600 flex items-center gap-2">
+                              <span className="truncate max-w-[150px] md:max-w-xs">{task.title}</span> 
+                              <ExternalLink size={12} className="shrink-0 opacity-40 group-hover:opacity-100" />
+                            </div>
+                            <div className="text-slate-400 text-[11px] font-medium">{task.module}</div>
+                          </td>
+                          <td className="px-6 md:px-8 py-4 md:py-6">
+                            <div className="flex items-center gap-2 text-[11px] md:text-xs font-bold text-slate-600 whitespace-nowrap">
+                              <Calendar size={14} className="text-indigo-400 shrink-0" />
+                              <span className="hidden sm:inline">{new Date(task.startDate).toLocaleDateString()} — </span>
+                              {new Date(task.endDate).toLocaleDateString()}
+                            </div>
+                          </td>
+                          <td className="px-6 md:px-8 py-4 md:py-6">
+                              <span className={`text-[9px] md:text-[10px] font-black uppercase px-2 py-1 rounded-md flex items-center gap-1.5 w-fit ${
+                                 task.type === 'video' ? 'bg-blue-100 text-blue-700' : 
+                                 task.type === 'pdf' ? 'bg-red-100 text-red-700' : 'bg-slate-100 text-slate-700'
+                              }`}>
+                                 {task.type === 'video' ? <Video size={10}/> : task.type === 'pdf' ? <FileText size={10}/> : <LinkIcon size={10}/>}
+                                 {task.type}
+                              </span>
+                          </td>
+                          <td className="px-6 md:px-8 py-4 md:py-6 text-right">
+                            <div className="flex justify-end gap-1 md:gap-2 items-center">
+                              <button onClick={(e) => handleEditClick(e, task)} className="p-2 text-slate-400 md:text-slate-300 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg">
+                                <Edit size={16}/>
+                              </button>
+                              <button onClick={(e) => handleDelete(e, task._id)} className="p-2 text-slate-400 md:text-slate-300 hover:text-red-500 hover:bg-red-50 rounded-lg">
+                                <Trash2 size={16}/>
+                              </button>
+                            </div>
+                          </td>
                         </tr>
-                    )}
-                  </tbody>
-                </table>
-              )}
+                      )) : (
+                          <tr>
+                              <td colSpan={4} className="py-20 text-center text-slate-400 font-bold text-sm">No tasks found.</td>
+                          </tr>
+                      )}
+                    </tbody>
+                  </table>
+                )}
+              </div>
             </div>
           </div>
         </div>
       </main>
 
+      {/* Responsive Modal */}
       <AnimatePresence>
         {showModal && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={handleCloseModal} className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm" />
-            <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="bg-white rounded-[2.5rem] w-full max-w-lg p-10 shadow-2xl relative z-10 max-h-[90vh] overflow-y-auto">
-              <div className="flex justify-between items-start mb-6">
-                <h3 className="text-2xl font-black text-slate-900">{editingId ? 'Edit Task' : 'Add New Task'}</h3>
-                <button onClick={handleCloseModal} className="p-2 hover:bg-slate-100 rounded-full transition-colors"><X size={20} className="text-slate-400" /></button>
+          <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4">
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={handleCloseModal} className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" />
+            <motion.div 
+              initial={{ y: "100%" }} 
+              animate={{ y: 0 }} 
+              exit={{ y: "100%" }}
+              transition={{ type: "spring", damping: 25, stiffness: 300 }}
+              className="bg-white rounded-t-3xl sm:rounded-[2.5rem] w-full max-w-lg p-6 md:p-10 shadow-2xl relative z-10 max-h-[90vh] overflow-y-auto"
+            >
+              <div className="flex justify-between items-center mb-6">
+                <h3 className="text-xl md:text-2xl font-black text-slate-900">{editingId ? 'Edit Task' : 'Add New Task'}</h3>
+                <button onClick={handleCloseModal} className="p-2 hover:bg-slate-100 rounded-full"><X size={20} className="text-slate-400" /></button>
               </div>
 
-              <form onSubmit={handleSubmit} className="space-y-5">
+              <form onSubmit={handleSubmit} className="space-y-4 md:space-y-5">
                 <div className="space-y-1">
                   <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Task Title</label>
                   <input type="text" required className="w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl outline-none text-sm font-bold focus:ring-2 focus:ring-indigo-500/20" value={formData.title} onChange={(e) => setFormData({...formData, title: e.target.value})} placeholder="e.g. Project Phase 1" />
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="space-y-1">
                     <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Start Date</label>
-                    <input type="date" required className="w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-bold outline-none focus:ring-2 focus:ring-indigo-500/20" value={formData.startDate} onChange={(e) => setFormData({...formData, startDate: e.target.value})} />
+                    <input type="date" required className="w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-bold outline-none" value={formData.startDate} onChange={(e) => setFormData({...formData, startDate: e.target.value})} />
                   </div>
                   <div className="space-y-1">
                     <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">End Date</label>
-                    <input type="date" required className="w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-bold outline-none focus:ring-2 focus:ring-indigo-500/20" value={formData.endDate} onChange={(e) => setFormData({...formData, endDate: e.target.value})} />
+                    <input type="date" required className="w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-bold outline-none" value={formData.endDate} onChange={(e) => setFormData({...formData, endDate: e.target.value})} />
                   </div>
                 </div>
 
@@ -280,7 +283,7 @@ const TaskManagement = () => {
                   <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Content Type</label>
                   <div className="grid grid-cols-3 gap-2">
                     {['link', 'video', 'pdf'].map((type) => (
-                      <button key={type} type="button" onClick={() => setContentType(type)} className={`capitalize p-3 rounded-xl border text-xs font-bold transition-all ${contentType === type ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-white text-slate-500 border-slate-100 hover:border-indigo-200'}`}>
+                      <button key={type} type="button" onClick={() => setContentType(type)} className={`capitalize py-3 rounded-xl border text-xs font-bold transition-all ${contentType === type ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-white text-slate-500 border-slate-100 hover:border-indigo-200'}`}>
                         {type}
                       </button>
                     ))}
@@ -290,33 +293,33 @@ const TaskManagement = () => {
                 <div className="space-y-1">
                   <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">{contentType === 'link' ? 'URL' : `File Upload`}</label>
                   {contentType === 'link' ? (
-                    <input type="url" required className="w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl outline-none text-sm font-bold focus:ring-2 focus:ring-indigo-500/20" value={formData.link} onChange={(e) => setFormData({...formData, link: e.target.value})} placeholder="https://..." />
+                    <input type="url" required className="w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl outline-none text-sm font-bold" value={formData.link} onChange={(e) => setFormData({...formData, link: e.target.value})} placeholder="https://..." />
                   ) : (
-                    <div className="relative">
+                    <div className="relative group">
                       <input type="file" required={!editingId} className="absolute inset-0 opacity-0 cursor-pointer z-10" onChange={(e) => setFormData({...formData, file: e.target.files ? e.target.files[0] : null})} />
-                      <div className="w-full p-6 border-2 border-dashed border-slate-200 rounded-2xl flex flex-col items-center gap-2 group-hover:border-indigo-300 transition-colors">
+                      <div className="w-full p-6 border-2 border-dashed border-slate-200 rounded-2xl flex flex-col items-center gap-2 group-hover:border-indigo-300">
                         <Plus className="text-slate-300" />
-                        <span className="text-xs font-bold text-slate-400">{formData.file ? formData.file.name : editingId ? 'Leave empty to keep existing' : `Select ${contentType.toUpperCase()}`}</span>
+                        <span className="text-[10px] font-bold text-slate-400 text-center">{formData.file ? formData.file.name : editingId ? 'Leave empty to keep current' : `Upload ${contentType.toUpperCase()}`}</span>
                       </div>
                     </div>
                   )}
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="space-y-1">
                     <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Module</label>
-                    <input type="text" placeholder="e.g. Frontend" required className="w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-bold outline-none focus:ring-2 focus:ring-indigo-500/20" value={formData.module} onChange={(e) => setFormData({...formData, module: e.target.value})} />
+                    <input type="text" placeholder="Frontend" required className="w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-bold outline-none" value={formData.module} onChange={(e) => setFormData({...formData, module: e.target.value})} />
                   </div>
                   <div className="space-y-1">
                     <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Status</label>
-                    <select className="w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-bold outline-none focus:ring-2 focus:ring-indigo-500/20 appearance-none" value={formData.status} onChange={(e) => setFormData({...formData, status: e.target.value})}>
+                    <select className="w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-bold outline-none appearance-none" value={formData.status} onChange={(e) => setFormData({...formData, status: e.target.value})}>
                       <option value="Active">Active</option>
                       <option value="Draft">Draft</option>
                     </select>
                   </div>
                 </div>
 
-                <button type="submit" className="w-full bg-indigo-600 text-white py-5 rounded-2xl font-black text-lg active:scale-95 transition-all shadow-xl shadow-indigo-200 mt-4 hover:bg-indigo-700">
+                <button type="submit" className="w-full bg-indigo-600 text-white py-4 rounded-2xl font-black text-base active:scale-95 transition-all shadow-xl shadow-indigo-200 mt-2">
                   {editingId ? 'Update Task' : 'Publish Task'}
                 </button>
               </form>

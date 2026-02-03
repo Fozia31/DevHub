@@ -6,7 +6,6 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
-// --- INTERFACES FOR PRODUCTION TYPE SAFETY ---
 interface CodingHandles {
   github?: string;
   leetcode?: string;
@@ -48,7 +47,7 @@ const StudentProfile = () => {
   const fetchProfile = async () => {
     try {
       setLoading(true);
-      const res = await axios.get(`${API_BASE}/api/profile`, { withCredentials: true });
+      const res = await axios.get(`${API_BASE}/profile`, { withCredentials: true });
       const userData = res.data;
       setUser(userData);
       
@@ -73,7 +72,7 @@ const StudentProfile = () => {
     e.preventDefault();
     setSaving(true);
     try {
-      const res = await axios.patch(`${API_BASE}/api/profile`, formData, { withCredentials: true });
+      const res = await axios.patch(`${API_BASE}/profile`, formData, { withCredentials: true });
       setUser(res.data);
       setIsEditModalOpen(false);
     } catch (err) { 
@@ -128,7 +127,6 @@ const StudentProfile = () => {
         </div>
       </div>
 
-      {/* Edit Modal */}
       <AnimatePresence>
         {isEditModalOpen && (
           <div className="fixed inset-0 z-[110] flex items-center justify-center p-4">
@@ -167,8 +165,6 @@ const StudentProfile = () => {
     </div>
   );
 };
-
-// --- HELPER COMPONENTS ---
 
 interface InputProps {
   label: string;
