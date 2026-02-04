@@ -7,7 +7,7 @@ import jwt from 'jsonwebtoken';
 declare global {
   namespace Express {
     interface Request {
-      user?: {
+      User?: {
         id: string;
         role: string;
         email: string;
@@ -28,15 +28,13 @@ const getCookieOptions = () => {
         path: '/',
     };
 
-    // In production, only set cookie domain when explicitly configured.
-    // Setting domain implicitly (derived from FRONTEND_URL) can cause mismatches
-    // and rejected cookies. Provide `COOKIE_DOMAIN` like `.example.com` when needed.
-    if (isProd && process.env.COOKIE_DOMAIN) {
+    if (isProd) {
         options.domain = process.env.COOKIE_DOMAIN;
     }
 
     return options;
 };
+
 
 export const register = async (req: Request, res: Response): Promise<void> => {
     try {
