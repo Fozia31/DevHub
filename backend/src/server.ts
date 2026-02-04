@@ -26,18 +26,11 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 app.use(express.json());
 app.use(cookieParser());
 
-// 2. Optimized CORS (No manual res.header blocks needed)
-// Use an explicit origin when `credentials: true` is required.
 const defaultFrontend = process.env.FRONTEND_URL || 'http://localhost:3000';
 
+// This dynamic origin function is the problem for cross-domain cookies
 app.use(cors({
-  origin: (origin, callback) => {
-    // If no origin (e.g. direct server-to-server requests or same-origin),
-    // fall back to the configured default frontend. Otherwise echo the
-    // request origin so the browser receives an explicit Access-Control-Allow-Origin.
-    if (!origin) return callback(null, defaultFrontend);
-    return callback(null, origin);
-  },
+  origin:defaultFrontend,
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'Cookie']
