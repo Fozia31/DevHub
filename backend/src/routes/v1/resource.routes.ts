@@ -10,6 +10,6 @@ router.get('/', protect, getResources);
 router.post('/add', protect, authorize('admin'), addResource);
 router.put('/:id', protect, authorize('admin'), updateResource);
 router.delete('/:id', protect, authorize('admin'), deleteResource);
-router.patch('/:id/status', protect, updateResourceStatus); // Only one entry needed
+router.patch('/:id/status', protect, authorize('admin', 'user', 'student'), updateResourceStatus); 
 
 export default router;

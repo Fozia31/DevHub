@@ -28,7 +28,10 @@ export const updateResourceStatus = async (req: Request, res: Response) => {
     const { status } = req.body;
 
     const updated = await Resource.findByIdAndUpdate(id, { status }, { new: true });
-    if (!updated) return res.status(404).json({ message: "Resource not found" });
+
+    if (!updated) {
+      return res.status(404).json({ message: "Resource not found" });
+    }
 
     res.json(updated);
   } catch (error: any) {

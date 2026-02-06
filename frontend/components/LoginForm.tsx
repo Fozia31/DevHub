@@ -61,6 +61,7 @@ const LoginForm = () => {
                 setIsLoading(false);
             }
         } catch (err) {
+            console.error('Login error:', err);
             setError('Network error. Please try again.');
             setIsLoading(false);
         }

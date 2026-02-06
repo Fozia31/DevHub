@@ -58,7 +58,7 @@ const StudentResources = () => {
     );
 
     try {
-      await axios.patch(`${API_BASE}/resources/status`, 
+      await axios.patch(`${API_BASE}/api/resources/${id}/status`, 
         { status: newStatus },
         { withCredentials: true }
       );

@@ -28,7 +28,6 @@ app.use(cookieParser());
 
 const defaultFrontend = process.env.FRONTEND_URL || 'http://localhost:3000';
 
-// This dynamic origin function is the problem for cross-domain cookies
 app.use(cors({
   origin:defaultFrontend,
   credentials: true,
@@ -54,7 +53,6 @@ app.use('/api/resources', Res);
 app.use('/api/admin/tasks', taskAdminRoutes); 
 app.use('/api/admin/tasks/add', createTask); 
 
-app.use
 app.use('/api/admin/resources', adminResourceRoutes); 
 
 // 4. Health Check
