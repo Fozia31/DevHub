@@ -26,10 +26,21 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 app.use(express.json());
 app.use(cookieParser());
 
-const defaultFrontend = process.env.FRONTEND_URL || 'http://localhost:3000';
+const allowedOrigins = [
+  process.env.FRONTEND_URL || 'http://localhost:3000',
+  'https://dev-hub-lac-ten.vercel.app' 
+];
 
 app.use(cors({
-  origin:defaultFrontend,
+  origin: (origin, callback) => {
+    // Allow requests with no origin (like mobile apps or curl requests)
+    if (!origin) return callback(null, true);
+    if (allowedOrigins.indexOf(origin) === -1) {
+      const msg = 'The CORS policy for this site does not allow access from the specified Origin.';
+      return callback(new Error(msg), false);
+    }
+    return callback(null, true);
+  },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'Cookie']
